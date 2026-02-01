@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://shogi-engawa.com/sitemap.xml

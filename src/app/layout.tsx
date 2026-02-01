@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import Link from 'next/link';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -39,17 +40,45 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ja">
-      <body className="min-h-screen bg-[#f5f0e0]">
+      <body className="min-h-screen bg-[#f5f0e0] flex flex-col">
         <header className="bg-gradient-to-r from-amber-900 via-amber-800 to-amber-900 text-amber-100 shadow-lg">
           <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-            <a href="/" className="flex items-center gap-2">
+            <Link href="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
               <span className="text-2xl md:text-3xl font-bold tracking-wider">
-                🏠 将棋の縁台
+                ▲ 将棋の縁台
               </span>
-            </a>
+            </Link>
+            <nav className="flex items-center gap-4 md:gap-6">
+              <Link
+                href="/play"
+                className="text-amber-200 hover:text-white text-sm md:text-base font-bold transition-colors"
+              >
+                対局する
+              </Link>
+              <Link
+                href="/about"
+                className="text-amber-200 hover:text-white text-sm md:text-base font-bold transition-colors"
+              >
+                縁台について
+              </Link>
+            </nav>
           </div>
         </header>
-        <main>{children}</main>
+
+        <main className="flex-1">{children}</main>
+
+        <footer className="bg-amber-900 text-amber-200/80">
+          <div className="max-w-4xl mx-auto px-4 py-6 flex flex-col md:flex-row items-center justify-between gap-2 text-sm">
+            <p>© 2026 将棋の縁台</p>
+            <div className="flex items-center gap-4">
+              <Link href="/about" className="hover:text-white transition-colors">
+                将棋の縁台について
+              </Link>
+              <span className="text-amber-700">|</span>
+              <span className="text-amber-200/60">お問い合わせ</span>
+            </div>
+          </div>
+        </footer>
       </body>
     </html>
   );

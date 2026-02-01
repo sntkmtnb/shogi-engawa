@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   GameState, Player, Position, Move, PieceType, AnyPieceType, Difficulty,
   PIECE_KANJI, PIECE_KANJI_SENTE_KING, canPromote, isPromoted, baseType,
@@ -30,9 +30,36 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
   } | null>(null);
   const [thinking, setThinking] = useState(false);
   const [message, setMessage] = useState<string>('あなたの番です');
+  const [resigned, setResigned] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [showResignConfirm, setShowResignConfirm] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const playerSide: Player = 'sente';
   const aiSide: Player = 'gote';
+
+  // 経過時間タイマー
+  useEffect(() => {
+    timerRef.current = setInterval(() => {
+      setElapsedSeconds(prev => prev + 1);
+    }, 1000);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
+
+  // 対局終了時にタイマー停止
+  useEffect(() => {
+    if (game.status === 'checkmate' || game.status === 'stalemate' || resigned) {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+  }, [game.status, resigned]);
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
 
   // AI の手番処理
   const doAITurn = useCallback((currentGame: GameState) => {
@@ -40,9 +67,8 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
     if (currentGame.turn !== aiSide) return;
 
     setThinking(true);
-    setMessage('AIが考えています...');
+    setMessage('AIが考えています…🤔');
 
-    // 少し遅延させてUIを更新
     setTimeout(() => {
       const aiMove = getAIMove(currentGame.board, currentGame.captured, aiSide, difficulty);
       if (!aiMove) {
@@ -57,20 +83,19 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
       newGame.turn = playerSide;
       newGame.moveHistory.push(aiMove);
 
-      // 状態チェック
       if (isCheckmate(newGame.board, newGame.captured, playerSide)) {
         newGame.status = 'checkmate';
         newGame.winner = aiSide;
-        setMessage('残念...AIの勝ちです');
+        setMessage('残念…AIの勝ちです。もう一局いかがですか？');
       } else if (isStalemate(newGame.board, newGame.captured, playerSide)) {
         newGame.status = 'stalemate';
-        setMessage('引き分けです');
+        setMessage('引き分けです。いい勝負でした！');
       } else if (isInCheck(newGame.board, playerSide)) {
         newGame.status = 'check';
-        setMessage('王手！あなたの番です');
+        setMessage('王手です！落ち着いて考えましょう');
       } else {
         newGame.status = 'playing';
-        setMessage('あなたの番です');
+        setMessage('あなたの番です。じっくりどうぞ');
       }
 
       setLastMove({ from: aiMove.from, to: aiMove.to });
@@ -89,17 +114,16 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
     newGame.turn = aiSide;
     newGame.moveHistory.push(actualMove);
 
-    // 状態チェック
     if (isCheckmate(newGame.board, newGame.captured, aiSide)) {
       newGame.status = 'checkmate';
       newGame.winner = playerSide;
-      setMessage('おめでとうございます！あなたの勝ちです！🎉');
+      setMessage('おめでとうございます！見事な勝利です！🎉');
     } else if (isStalemate(newGame.board, newGame.captured, aiSide)) {
       newGame.status = 'stalemate';
-      setMessage('引き分けです');
+      setMessage('引き分けです。いい勝負でした！');
     } else if (isInCheck(newGame.board, aiSide)) {
       newGame.status = 'check';
-      setMessage('王手！');
+      setMessage('王手！いい攻めですね！');
     } else {
       newGame.status = 'playing';
     }
@@ -111,7 +135,6 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
     setLegalMoves([]);
     setShowPromote(null);
 
-    // AIの番
     if (newGame.status === 'playing' || newGame.status === 'check') {
       setTimeout(() => doAITurn(newGame), 100);
     }
@@ -121,13 +144,12 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
   const handleCellClick = useCallback((row: number, col: number) => {
     if (thinking) return;
     if (game.turn !== playerSide) return;
-    if (game.status === 'checkmate' || game.status === 'stalemate') return;
+    if (game.status === 'checkmate' || game.status === 'stalemate' || resigned) return;
 
     const piece = game.board[row][col];
 
-    // 持ち駒からの打ち
     if (selectedDrop) {
-      if (piece) return; // 駒がある場所には打てない
+      if (piece) return;
       const isLegal = legalMoves.some(m => m.row === row && m.col === col);
       if (!isLegal) {
         setSelectedDrop(null);
@@ -144,7 +166,6 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
       return;
     }
 
-    // 駒選択中 → 移動先クリック
     if (selected) {
       const isLegal = legalMoves.some(m => m.row === row && m.col === col);
 
@@ -157,14 +178,12 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
           capture: game.board[row][col],
         };
 
-        // 成り判定
         const cp = canPromoteMove(selectedPiece.type, playerSide, selected.row, row);
         const mp = mustPromote(selectedPiece.type, playerSide, row);
 
         if (mp) {
           executePlayerMove(move, true);
         } else if (cp) {
-          // 成り/不成の選択ダイアログ
           setShowPromote({
             move,
             callback: (promote) => executePlayerMove(move, promote),
@@ -175,11 +194,9 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
         return;
       }
 
-      // 別の自分の駒をクリック
       if (piece && piece.owner === playerSide) {
         setSelected({ row, col });
         const moves = getPieceMoves(game.board, playerSide, row, col);
-        // 合法手フィルタ
         const allLegal = getAllLegalMoves(game.board, game.captured, playerSide);
         const filtered = moves.filter(m =>
           allLegal.some(lm => lm.from && lm.from.row === row && lm.from.col === col && lm.to.row === m.row && lm.to.col === m.col)
@@ -188,13 +205,11 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
         return;
       }
 
-      // 空マスをクリック → 選択解除
       setSelected(null);
       setLegalMoves([]);
       return;
     }
 
-    // 駒をクリック → 選択
     if (piece && piece.owner === playerSide) {
       setSelected({ row, col });
       const moves = getPieceMoves(game.board, playerSide, row, col);
@@ -210,16 +225,25 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
   const handleCapturedClick = useCallback((pieceType: PieceType) => {
     if (thinking) return;
     if (game.turn !== playerSide) return;
-    if (game.status === 'checkmate' || game.status === 'stalemate') return;
+    if (game.status === 'checkmate' || game.status === 'stalemate' || resigned) return;
 
     setSelected(null);
     setSelectedDrop(pieceType);
 
-    // 打てるマスを計算
     const allLegal = getAllLegalMoves(game.board, game.captured, playerSide);
     const dropMoves = allLegal.filter(m => !m.from && m.dropPiece === pieceType);
     setLegalMoves(dropMoves.map(m => m.to));
   }, [thinking, game, playerSide]);
+
+  // 投了
+  const handleResign = () => {
+    setResigned(true);
+    setMessage('投了しました。お疲れさまでした。');
+    setShowResignConfirm(false);
+    setSelected(null);
+    setSelectedDrop(null);
+    setLegalMoves([]);
+  };
 
   // リセット
   const handleReset = () => {
@@ -231,22 +255,37 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
     setShowPromote(null);
     setThinking(false);
     setMessage('あなたの番です');
+    setElapsedSeconds(0);
+    setResigned(false);
+    setShowResignConfirm(false);
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setElapsedSeconds(prev => prev + 1);
+    }, 1000);
   };
 
-  // 駒の表示テキスト
   const getKanjiDisplay = (type: AnyPieceType, owner: Player): string => {
     if (type === 'king' && owner === 'sente') return PIECE_KANJI_SENTE_KING;
     return PIECE_KANJI[type];
   };
 
   const difficultyLabel = difficulty === 'easy' ? 'やさしい' : difficulty === 'normal' ? 'ふつう' : 'つよい';
+  const moveCount = game.moveHistory.length;
 
-  // 筋の数字（右から9,8,7...1）
   const colNumbers = [9, 8, 7, 6, 5, 4, 3, 2, 1];
-  // 段の漢数字
   const rowLabels = ['一', '二', '三', '四', '五', '六', '七', '八', '九'];
 
   const capturedPieceTypes: PieceType[] = ['rook', 'bishop', 'gold', 'silver', 'knight', 'lance', 'pawn'];
+
+  // 星印の位置 (row, col) — 3三(2,6), 6六(5,3), 3六(5,6), 6三(2,3)
+  const starPositions = [
+    { row: 2, col: 6 },
+    { row: 5, col: 3 },
+    { row: 5, col: 6 },
+    { row: 2, col: 3 },
+  ];
+
+  const isGameOver = game.status === 'checkmate' || game.status === 'stalemate' || resigned;
 
   return (
     <div className="no-scroll select-none">
@@ -259,7 +298,7 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
           ← 戻る
         </button>
         <span className="text-sm md:text-base text-amber-800 bg-amber-100 px-3 py-1 rounded-full font-bold">
-          難易度: {difficultyLabel}
+          {difficultyLabel}
         </span>
         <button
           onClick={handleReset}
@@ -269,15 +308,27 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
         </button>
       </div>
 
+      {/* 手数 & 経過時間 */}
+      <div className="flex items-center justify-center gap-4 mb-3">
+        <span className="game-info-pill">
+          📋 {moveCount}手目
+        </span>
+        <span className="game-info-pill">
+          ⏱ {formatTime(elapsedSeconds)}
+        </span>
+      </div>
+
       {/* メッセージ */}
-      <div className={`text-center text-lg md:text-xl font-bold mb-3 py-2 rounded-lg ${
-        game.status === 'checkmate'
-          ? game.winner === playerSide
-            ? 'bg-green-100 text-green-800'
-            : 'bg-red-100 text-red-800'
+      <div className={`text-center text-xl md:text-2xl font-bold mb-3 py-3 rounded-xl ${
+        isGameOver
+          ? (game.winner === playerSide && !resigned)
+            ? 'bg-green-100 text-green-800 border border-green-200'
+            : 'bg-red-50 text-red-800 border border-red-200'
           : game.status === 'check'
-            ? 'bg-yellow-100 text-yellow-800'
-            : 'bg-amber-50 text-amber-800'
+            ? 'bg-yellow-100 text-yellow-800 border border-yellow-200'
+            : thinking
+              ? 'bg-blue-50 text-blue-800 border border-blue-200'
+              : 'bg-amber-50 text-amber-800 border border-amber-200'
       }`}>
         {message}
       </div>
@@ -315,7 +366,21 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
           <div className="flex">
             {/* 盤面 */}
             <div className="board-texture rounded-sm shadow-lg border-2 border-amber-900/50 p-0">
-              <div className="grid grid-cols-9" style={{ width: 'min(85vw, 450px)', height: 'min(85vw, 450px)' }}>
+              <div className="grid grid-cols-9 relative" style={{ width: 'min(85vw, 450px)', height: 'min(85vw, 450px)' }}>
+                {/* 星印 */}
+                {starPositions.map((pos, idx) => {
+                  const cellW = 100 / 9;
+                  const left = `${(pos.col + 0.5) * cellW}%`;
+                  const top = `${(pos.row + 0.5) * cellW}%`;
+                  return (
+                    <div
+                      key={`star-${idx}`}
+                      className="board-star"
+                      style={{ left, top }}
+                    />
+                  );
+                })}
+
                 {game.board.map((row, r) =>
                   row.map((cell, c) => {
                     const isSelected = selected?.row === r && selected?.col === c;
@@ -404,6 +469,58 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
           })}
         </div>
       </div>
+
+      {/* 投了ボタン */}
+      {!isGameOver && (
+        <div className="mt-4 text-center">
+          <button
+            onClick={() => setShowResignConfirm(true)}
+            className="text-amber-700/70 hover:text-red-700 text-base font-bold py-2 px-6 rounded-lg border border-amber-300 hover:border-red-300 hover:bg-red-50 transition"
+          >
+            🏳 投了する
+          </button>
+        </div>
+      )}
+
+      {/* 対局終了時の再戦ボタン */}
+      {isGameOver && (
+        <div className="mt-4 text-center">
+          <button
+            onClick={handleReset}
+            className="btn-warm bg-gradient-to-r from-amber-700 to-amber-800 text-white text-lg font-bold py-3 px-8 rounded-xl shadow-lg"
+          >
+            🔄 もう一局
+          </button>
+        </div>
+      )}
+
+      {/* 投了確認ダイアログ */}
+      {showResignConfirm && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 shadow-2xl max-w-xs w-full mx-4">
+            <p className="text-xl font-bold text-amber-900 text-center mb-2">
+              投了しますか？
+            </p>
+            <p className="text-sm text-amber-700 text-center mb-6">
+              AIの勝ちになります
+            </p>
+            <div className="flex gap-4">
+              <button
+                onClick={handleResign}
+                className="flex-1 bg-red-600 hover:bg-red-500 text-white text-xl font-bold py-4 rounded-xl transition active:scale-95"
+              >
+                投了
+              </button>
+              <button
+                onClick={() => setShowResignConfirm(false)}
+                className="flex-1 bg-gray-400 hover:bg-gray-300 text-white text-xl font-bold py-4 rounded-xl transition active:scale-95"
+              >
+                続ける
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 成り/不成ダイアログ */}
       {showPromote && (

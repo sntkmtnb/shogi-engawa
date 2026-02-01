@@ -15,36 +15,118 @@ body {
   font-family: 'Noto Serif JP', serif;
   background-color: #f5f0e0;
   min-height: 100vh;
+  font-size: 17px;
 }
 
-/* 将棋盤の木目テクスチャ */
+/* 和風装飾パターン（麻の葉風） */
+.wagara-pattern {
+  background-color: #f5f0e0;
+  background-image:
+    radial-gradient(circle at 25% 25%, rgba(139, 69, 19, 0.04) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, rgba(139, 69, 19, 0.04) 0%, transparent 50%),
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 20px,
+      rgba(139, 69, 19, 0.02) 20px,
+      rgba(139, 69, 19, 0.02) 21px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 20px,
+      rgba(139, 69, 19, 0.02) 20px,
+      rgba(139, 69, 19, 0.02) 21px
+    );
+}
+
+/* 和風セクション区切り */
+.wa-divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 2rem 0;
+}
+.wa-divider::before,
+.wa-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, transparent, #8B4513, transparent);
+}
+
+/* 将棋盤の木目テクスチャ（リアル木目） */
 .board-texture {
   background:
     repeating-linear-gradient(
-      90deg,
+      85deg,
       transparent,
-      transparent 2px,
-      rgba(139, 90, 43, 0.06) 2px,
-      rgba(139, 90, 43, 0.06) 4px
+      transparent 1px,
+      rgba(139, 90, 43, 0.08) 1px,
+      rgba(139, 90, 43, 0.04) 3px,
+      transparent 3px,
+      transparent 5px
+    ),
+    repeating-linear-gradient(
+      92deg,
+      transparent,
+      transparent 3px,
+      rgba(160, 110, 50, 0.06) 3px,
+      rgba(160, 110, 50, 0.03) 4px
     ),
     repeating-linear-gradient(
       0deg,
       transparent,
-      transparent 8px,
-      rgba(139, 90, 43, 0.03) 8px,
-      rgba(139, 90, 43, 0.03) 10px
+      transparent 12px,
+      rgba(139, 90, 43, 0.03) 12px,
+      rgba(139, 90, 43, 0.03) 13px
     ),
-    linear-gradient(135deg, #deb887 0%, #d4a76a 50%, #deb887 100%);
+    linear-gradient(170deg,
+      #deb887 0%,
+      #d4a76a 15%,
+      #deb887 30%,
+      #d9b07a 50%,
+      #deb887 70%,
+      #d4a76a 85%,
+      #deb887 100%
+    );
+  box-shadow:
+    inset 0 0 30px rgba(139, 69, 19, 0.1),
+    0 4px 12px rgba(0, 0, 0, 0.2),
+    0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* 駒のスタイル */
+/* 星印 */
+.board-star {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #5c3a1e;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* 駒のスタイル（よりリアルな五角形） */
 .koma {
-  background: linear-gradient(135deg, #f5e6c8 0%, #e8d5a8 50%, #f0ddb8 100%);
-  clip-path: polygon(50% 5%, 90% 25%, 95% 95%, 5% 95%, 10% 25%);
+  background: linear-gradient(160deg, #f7ecd5 0%, #ecdbb5 30%, #e2cc9e 60%, #d9c08a 100%);
+  clip-path: polygon(50% 3%, 92% 22%, 97% 97%, 3% 97%, 8% 22%);
   transition: all 0.15s ease;
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
+  box-shadow: 1px 2px 3px rgba(0,0,0,0.2);
+  position: relative;
+}
+
+.koma::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(50% 3%, 92% 22%, 97% 97%, 3% 97%, 8% 22%);
+  background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, transparent 50%, rgba(0,0,0,0.05) 100%);
+  pointer-events: none;
 }
 
 .koma:hover {
@@ -52,9 +134,9 @@ body {
 }
 
 .koma.selected {
-  background: linear-gradient(135deg, #ffe4b5 0%, #ffd700 50%, #ffe4b5 100%);
+  background: linear-gradient(160deg, #fff3c4 0%, #ffd700 40%, #f0c800 100%);
   filter: brightness(1.1);
-  box-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.7);
 }
 
 .koma.gote {
@@ -76,10 +158,73 @@ body {
   background-color: rgba(255, 200, 100, 0.35) !important;
 }
 
+/* ボタンホバーエフェクト改善 */
+.btn-warm {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-warm::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%);
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+.btn-warm:hover::before {
+  opacity: 1;
+}
+
+.btn-warm:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.btn-warm:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* 特徴カード */
+.feature-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(139, 69, 19, 0.15);
+}
+
+/* 利用者の声カード */
+.testimonial-card {
+  position: relative;
+}
+
+.testimonial-card::before {
+  content: '「';
+  position: absolute;
+  top: 8px;
+  left: 12px;
+  font-size: 2.5rem;
+  color: rgba(139, 69, 19, 0.15);
+  font-family: 'Noto Serif JP', serif;
+  line-height: 1;
+}
+
 /* タッチ対応 */
 @media (hover: none) {
   .koma:hover {
     filter: none;
+  }
+  .btn-warm:hover {
+    transform: none;
+    box-shadow: none;
+  }
+  .feature-card:hover {
+    transform: none;
+    box-shadow: none;
   }
 }
 
@@ -87,4 +232,18 @@ body {
 .no-scroll {
   touch-action: manipulation;
   -webkit-touch-callout: none;
+}
+
+/* 経過時間・手数カウンター */
+.game-info-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(139, 69, 19, 0.2);
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  color: #78350f;
+  font-weight: 600;
 }
