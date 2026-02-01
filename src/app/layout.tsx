@@ -56,6 +56,12 @@ export default function RootLayout({
                 対局する
               </Link>
               <Link
+                href="/tsume"
+                className="text-amber-200 hover:text-white text-sm md:text-base font-bold transition-colors"
+              >
+                詰将棋
+              </Link>
+              <Link
                 href="/about"
                 className="text-amber-200 hover:text-white text-sm md:text-base font-bold transition-colors"
               >
