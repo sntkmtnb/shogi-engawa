@@ -155,6 +155,14 @@ export default function Home() {
           <p className="mt-4 text-sm text-amber-600">
             登録不要・無料でお楽しみいただけます
           </p>
+          <div className="mt-6">
+            <Link
+              href="/tsume"
+              className="text-amber-700 hover:text-amber-500 text-lg font-bold transition underline decoration-amber-300 underline-offset-4"
+            >
+              🧩 毎日の詰将棋はこちら →
+            </Link>
+          </div>
         </div>
       </section>
 
