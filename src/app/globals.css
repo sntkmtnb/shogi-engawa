@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&display=swap');
+
+:root {
+  --ban-color: #deb887;
+  --ban-dark: #c8a96e;
+  --koma-color: #f5deb3;
+  --tatami: #c8b568;
+}
+
+body {
+  font-family: 'Noto Serif JP', serif;
+  background-color: #f5f0e0;
+  min-height: 100vh;
+}
+
+/* 将棋盤の木目テクスチャ */
+.board-texture {
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 2px,
+      rgba(139, 90, 43, 0.06) 2px,
+      rgba(139, 90, 43, 0.06) 4px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 8px,
+      rgba(139, 90, 43, 0.03) 8px,
+      rgba(139, 90, 43, 0.03) 10px
+    ),
+    linear-gradient(135deg, #deb887 0%, #d4a76a 50%, #deb887 100%);
+}
+
+/* 駒のスタイル */
+.koma {
+  background: linear-gradient(135deg, #f5e6c8 0%, #e8d5a8 50%, #f0ddb8 100%);
+  clip-path: polygon(50% 5%, 90% 25%, 95% 95%, 5% 95%, 10% 25%);
+  transition: all 0.15s ease;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.koma:hover {
+  filter: brightness(1.05);
+}
+
+.koma.selected {
+  background: linear-gradient(135deg, #ffe4b5 0%, #ffd700 50%, #ffe4b5 100%);
+  filter: brightness(1.1);
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+}
+
+.koma.gote {
+  transform: rotate(180deg);
+}
+
+/* 移動可能マスのハイライト */
+.cell-highlight {
+  background-color: rgba(144, 238, 144, 0.4) !important;
+  cursor: pointer;
+}
+
+.cell-highlight:hover {
+  background-color: rgba(144, 238, 144, 0.6) !important;
+}
+
+/* 最後の手のハイライト */
+.cell-last-move {
+  background-color: rgba(255, 200, 100, 0.35) !important;
+}
+
+/* タッチ対応 */
+@media (hover: none) {
+  .koma:hover {
+    filter: none;
+  }
+}
+
+/* スクロール防止 */
+.no-scroll {
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+}
