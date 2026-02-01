@@ -143,6 +143,29 @@ body {
   transform: rotate(180deg);
 }
 
+/* 詰将棋盤面用の駒（表示のみ、操作なし） */
+.koma-display {
+  background: linear-gradient(160deg, #f7ecd5 0%, #ecdbb5 30%, #e2cc9e 60%, #d9c08a 100%);
+  clip-path: polygon(50% 3%, 92% 22%, 97% 97%, 3% 97%, 8% 22%);
+  user-select: none;
+  -webkit-user-select: none;
+  box-shadow: 1px 2px 3px rgba(0,0,0,0.2);
+  position: relative;
+}
+
+.koma-display::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(50% 3%, 92% 22%, 97% 97%, 3% 97%, 8% 22%);
+  background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, transparent 50%, rgba(0,0,0,0.05) 100%);
+  pointer-events: none;
+}
+
+.koma-display.gote {
+  transform: rotate(180deg);
+}
+
 /* 移動可能マスのハイライト */
 .cell-highlight {
   background-color: rgba(144, 238, 144, 0.4) !important;
