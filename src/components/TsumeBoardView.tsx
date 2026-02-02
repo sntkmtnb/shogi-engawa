@@ -13,6 +13,8 @@ interface TsumeBoardViewProps {
   onBack: () => void;
   currentIndex: number;
   totalCount: number;
+  isSolved?: boolean;
+  onSolved?: () => void;
 }
 
 const HAND_PIECE_KANJI: Record<string, string> = {
@@ -34,6 +36,8 @@ export default function TsumeBoardView({
   onBack,
   currentIndex,
   totalCount,
+  isSolved,
+  onSolved,
 }: TsumeBoardViewProps) {
   const [showSolution, setShowSolution] = useState(false);
 
@@ -193,8 +197,14 @@ export default function TsumeBoardView({
       <div className="mt-5">
         {!showSolution ? (
           <div className="text-center">
+            {isSolved && (
+              <p className="text-green-600 font-bold text-sm mb-3">✅ クリア済み</p>
+            )}
             <button
-              onClick={() => setShowSolution(true)}
+              onClick={() => {
+                setShowSolution(true);
+                onSolved?.();
+              }}
               className="btn-warm bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white text-xl md:text-2xl font-bold py-4 px-10 rounded-xl shadow-lg transition-all active:scale-[0.98]"
             >
               💡 答えを見る
@@ -208,12 +218,17 @@ export default function TsumeBoardView({
             <div className="text-lg md:text-xl text-amber-900 font-bold leading-loose tracking-wide">
               {problem.solution.join(' → ')}
             </div>
-            <button
-              onClick={() => setShowSolution(false)}
-              className="mt-3 text-amber-700 hover:text-amber-500 text-base font-bold transition"
-            >
-              答えを隠す
-            </button>
+            <div className="mt-3 flex items-center justify-between">
+              <button
+                onClick={() => setShowSolution(false)}
+                className="text-amber-700 hover:text-amber-500 text-base font-bold transition"
+              >
+                答えを隠す
+              </button>
+              {isSolved && (
+                <span className="text-green-600 text-sm font-bold">✅ クリア！</span>
+              )}
+            </div>
           </div>
         )}
       </div>

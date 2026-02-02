@@ -51,7 +51,7 @@ export default function Home() {
     <div className="flex flex-col items-center justify-center min-h-[100dvh] px-6 pb-24 relative">
       {/* Main content - centered */}
       <div
-        className="flex flex-col items-center gap-8 transition-opacity duration-700"
+        className="flex flex-col items-center gap-8 transition-opacity duration-1000 ease-out"
         style={{ opacity: mounted ? 1 : 0 }}
       >
         {/* Time-based greeting */}
@@ -95,20 +95,20 @@ export default function Home() {
         </Link>
       </div>
 
-      {/* 縁台の人の気配 */}
+      {/* 縁台の人の気配 - positioned just above tab bar */}
       {mounted && (
-        <div className="fixed bottom-16 left-0 right-0 text-center space-y-1 pb-[env(safe-area-inset-bottom,0px)]" style={{ zIndex: 41 }}>
-          <p className="text-xs text-amber-500/70 font-medium">
+        <div className="fixed left-0 right-0 text-center space-y-0.5 pb-1" style={{ bottom: 'calc(56px + env(safe-area-inset-bottom, 0px))', zIndex: 41 }}>
+          <p className="text-sm text-amber-500/70 font-medium">
             🏮 今日 {todayPlayers}人が源さんと一局指しました
           </p>
-          <p className="text-xs text-green-600/60 font-medium">
+          <p className="text-sm text-green-600/60 font-medium">
             💚 今 {onlineNow}人がオンライン
           </p>
         </div>
       )}
 
       {/* Footer */}
-      <div className="absolute bottom-8 left-0 right-0 text-center pb-[env(safe-area-inset-bottom,0px)]">
+      <div className="absolute bottom-20 left-0 right-0 text-center pb-[env(safe-area-inset-bottom,0px)]">
         <p className="text-xs text-amber-500/60 font-medium tracking-wider">
           将棋の縁台 — 50歳からの居場所
         </p>

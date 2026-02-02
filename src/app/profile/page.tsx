@@ -1,15 +1,23 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { getStats, getWinRate, getStatsComment, getLoginStreakComment, updateLoginStreak, PlayerStats } from '@/lib/stats';
 
 export default function ProfilePage() {
   const [stats, setStats] = useState<PlayerStats | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [tsumeSolved, setTsumeSolved] = useState(0);
 
   useEffect(() => {
     updateLoginStreak();
     setStats(getStats());
+    // 詰将棋の進捗を取得
+    try {
+      const raw = localStorage.getItem('tsume-solved');
+      const solved = JSON.parse(raw || '[]');
+      setTsumeSolved(Array.isArray(solved) ? solved.length : 0);
+    } catch { /* ignore */ setTsumeSolved(0); }
     setMounted(true);
   }, []);
 
@@ -28,7 +36,7 @@ export default function ProfilePage() {
   return (
     <div className="max-w-lg mx-auto px-5 py-8 md:py-12 pb-28">
       {/* Gen-san header */}
-      <div className="ios-card p-5 mb-5 text-center">
+      <div className="ios-card p-5 mb-5 text-center animate-springIn">
         <div
           className="w-14 h-14 rounded-full mx-auto mb-2 flex items-center justify-center text-white text-xl font-bold shadow-lg"
           style={{ background: 'linear-gradient(135deg, #8B6914, #6B4F12)' }}
@@ -72,9 +80,9 @@ export default function ProfilePage() {
           <div className="text-xs text-amber-600 font-bold">総手数</div>
         </div>
         <div className="ios-card p-4 text-center">
-          <div className="text-2xl mb-1">💡</div>
-          <div className="text-xl font-black text-amber-900">{stats.hintsUsed}回</div>
-          <div className="text-xs text-amber-600 font-bold">ヒント使用</div>
+          <div className="text-2xl mb-1">🧩</div>
+          <div className="text-xl font-black text-amber-900">{tsumeSolved}問</div>
+          <div className="text-xs text-amber-600 font-bold">詰将棋クリア</div>
         </div>
       </div>
 
@@ -86,6 +94,30 @@ export default function ProfilePage() {
           </span>
         </div>
       )}
+
+      {/* Quick links */}
+      <div className="space-y-3 mb-4">
+        <Link
+          href="/diary"
+          className="ios-card p-4 flex items-center justify-between group active:scale-[0.98] transition-all block"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">📔</span>
+            <span className="text-base font-bold text-amber-900">源さんの日記を読む</span>
+          </div>
+          <span className="text-amber-400 group-hover:text-amber-600 text-lg transition">→</span>
+        </Link>
+        <Link
+          href="/learn"
+          className="ios-card p-4 flex items-center justify-between group active:scale-[0.98] transition-all block"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">📖</span>
+            <span className="text-base font-bold text-amber-900">駒の動かし方</span>
+          </div>
+          <span className="text-amber-400 group-hover:text-amber-600 text-lg transition">→</span>
+        </Link>
+      </div>
 
       {/* Difficulty breakdown */}
       <div className="ios-card p-5 mb-4">
@@ -144,10 +176,23 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      {/* About section */}
+      <div className="ios-card p-5 mb-4">
+        <h3 className="text-sm font-bold text-amber-700 mb-3">将棋の縁台について</h3>
+        <p className="text-sm text-amber-800 leading-relaxed mb-2">
+          「縁台将棋」— 夏の夕暮れ、縁台に腰かけて近所の人と一局。
+          勝っても負けても笑いあえる、あのゆったりとした時間。
+        </p>
+        <p className="text-sm text-amber-800 leading-relaxed">
+          50歳以上の方が迷わず使える将棋アプリを目指して作りました。
+          毎日の一局が、あなたの毎日を豊かにしますように。
+        </p>
+      </div>
+
       {/* Undo stats */}
       {stats.undosUsed > 0 && (
         <p className="text-xs text-amber-500/60 text-center mt-2">
-          ↩️ 待った使用: {stats.undosUsed}回
+          ↩️ 待った使用: {stats.undosUsed}回 / 💡 ヒント使用: {stats.hintsUsed}回
         </p>
       )}
     </div>

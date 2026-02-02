@@ -314,7 +314,8 @@ body {
 }
 
 .btn-ios:active {
-  transform: scale(0.97);
+  transform: scale(0.96);
+  transition-duration: 0.1s;
 }
 
 /* Feature card hover */
@@ -429,4 +430,25 @@ body {
   max-width: 340px;
   width: calc(100% - 40px);
   animation: modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* iOS-style spring animation */
+@keyframes springIn {
+  0% { transform: scale(0.9); opacity: 0; }
+  60% { transform: scale(1.03); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-springIn {
+  animation: springIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Card tap feedback */
+.ios-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ios-card:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 10px rgba(0,0,0,0.04);
 }
