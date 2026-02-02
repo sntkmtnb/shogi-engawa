@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 
 export interface BubbleMessage {
   id: number;
@@ -11,60 +11,56 @@ interface ChatBubbleProps {
   messages: BubbleMessage[];
 }
 
-function SingleBubble({ text, isNew }: { text: string; isNew: boolean }) {
-  const [visible, setVisible] = useState(!isNew);
+export default function ChatBubble({ messages }: ChatBubbleProps) {
+  const [visible, setVisible] = useState(true);
+  const [fading, setFading] = useState(false);
+  const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevMsgIdRef = useRef<number>(0);
 
+  const latest = messages.length > 0 ? messages[messages.length - 1] : null;
+
+  const dismiss = useCallback(() => {
+    setFading(true);
+    setTimeout(() => setVisible(false), 300);
+  }, []);
+
+  // When a new message arrives, show it and set auto-fade
   useEffect(() => {
-    if (isNew) {
-      // Trigger animation on next frame
-      requestAnimationFrame(() => setVisible(true));
-    }
-  }, [isNew]);
+    if (!latest) return;
+    if (latest.id === prevMsgIdRef.current) return;
+    prevMsgIdRef.current = latest.id;
+
+    setVisible(true);
+    setFading(false);
+
+    if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
+    fadeTimerRef.current = setTimeout(() => {
+      dismiss();
+    }, 5000);
+
+    return () => {
+      if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
+    };
+  }, [latest, dismiss]);
+
+  if (!latest || !visible) return null;
 
   return (
     <div
-      className={`chat-bubble-item flex items-start gap-2 transition-all duration-300 ease-out ${
-        visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-2 scale-95'
-      }`}
+      className={`chat-float ${fading ? 'fading' : ''}`}
+      onClick={dismiss}
     >
-      {/* おっちゃんアバター */}
-      <div className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md"
-        style={{ background: 'linear-gradient(135deg, #8B6914, #6B4F12)' }}
-      >
-        源
-      </div>
-      {/* 吹き出し */}
-      <div className="relative max-w-[80%]">
+      <div className="flex items-start gap-2">
         <div
-          className="px-3 py-2 rounded-xl rounded-tl-sm text-sm md:text-base font-medium shadow-sm border"
-          style={{
-            background: '#FFF8E7',
-            borderColor: '#D4A76A',
-            color: '#5C3A1E',
-          }}
+          className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs"
+          style={{ background: 'linear-gradient(135deg, #8B6914, #6B4F12)' }}
         >
-          {text}
+          源
         </div>
+        <p className="text-sm text-amber-900 leading-relaxed font-medium">
+          {latest.text}
+        </p>
       </div>
-    </div>
-  );
-}
-
-export default function ChatBubble({ messages }: ChatBubbleProps) {
-  // Show latest 3 messages
-  const visible = messages.slice(-3);
-
-  if (visible.length === 0) return null;
-
-  return (
-    <div className="chat-bubble-container flex flex-col gap-1.5 mb-2 min-h-[3rem]">
-      {visible.map((msg, idx) => (
-        <SingleBubble
-          key={msg.id}
-          text={msg.text}
-          isNew={idx === visible.length - 1}
-        />
-      ))}
     </div>
   );
 }

@@ -79,12 +79,9 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
   // ランダム独り言タイマー
   const scheduleMumble = useCallback(() => {
     if (mumbleTimerRef.current) clearTimeout(mumbleTimerRef.current);
-    const delay = 8000 + Math.random() * 12000; // 8〜20秒
+    const delay = 8000 + Math.random() * 12000;
     mumbleTimerRef.current = setTimeout(() => {
-      setBubbles(prev => {
-        // Only mumble if game is still going
-        return prev; // We check in the actual scheduling
-      });
+      setBubbles(prev => prev);
       addBubble(getComment('randomMumble'));
     }, delay);
   }, [addBubble]);
@@ -102,8 +99,6 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
 
     setThinking(true);
     setMessage('AIが考えています…🤔');
-
-    // 考え中コメント
     addBubble(getComment('aiThinking'));
 
     const thinkTime = 600 + Math.random() * 800;
@@ -121,7 +116,6 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
       newGame.turn = playerSide;
       newGame.moveHistory.push(aiMove);
 
-      // AIが指した後のコメント
       if (aiMove.promote) {
         addBubble(getComment('promoteByAI'));
       } else {
@@ -143,7 +137,6 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
       } else {
         newGame.status = 'playing';
         setMessage('あなたの番です。じっくりどうぞ');
-        // ランダム独り言チェック
         if (shouldMumble(newGame.moveHistory.length)) {
           setTimeout(() => addBubble(getComment('randomMumble')), 2000 + Math.random() * 3000);
         }
@@ -165,7 +158,6 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
     newGame.turn = aiSide;
     newGame.moveHistory.push(actualMove);
 
-    // プレイヤーの手に応じたコメント
     if (promote) {
       addBubble(getComment('promoteByPlayer'));
     } else if (move.capture) {
@@ -179,7 +171,6 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
         addBubble(getComment('playerMove'));
       }
     } else {
-      // たまに「良い手」コメント
       if (Math.random() < 0.25) {
         addBubble(getComment('playerMoveGood'));
       } else {
@@ -340,7 +331,6 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
     timerRef.current = setInterval(() => {
       setElapsedSeconds(prev => prev + 1);
     }, 1000);
-    // 新しい対局の開始コメント
     setTimeout(() => addBubble(getComment('gameStart')), 500);
   };
 
@@ -357,7 +347,6 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
 
   const capturedPieceTypes: PieceType[] = ['rook', 'bishop', 'gold', 'silver', 'knight', 'lance', 'pawn'];
 
-  // 星印の位置
   const starPositions = [
     { row: 2, col: 6 },
     { row: 5, col: 3 },
@@ -368,28 +357,31 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
   const isGameOver = game.status === 'checkmate' || game.status === 'stalemate' || resigned;
 
   return (
-    <div className="no-scroll select-none">
-      {/* ステータスバー */}
+    <div className="no-scroll select-none relative">
+      {/* Floating chat bubble - overlays on the board */}
+      <ChatBubble messages={bubbles} />
+
+      {/* Status bar */}
       <div className="flex items-center justify-between mb-3 px-1">
         <button
           onClick={onBack}
-          className="text-amber-800 hover:text-amber-600 text-lg font-bold py-1 px-3 rounded-lg hover:bg-amber-100 transition"
+          className="text-amber-800 hover:text-amber-600 text-base font-bold py-1.5 px-3 rounded-2xl hover:bg-white/60 transition-all active:scale-95"
         >
           ← 戻る
         </button>
-        <span className="text-sm md:text-base text-amber-800 bg-amber-100 px-3 py-1 rounded-full font-bold">
+        <span className="game-info-pill text-sm font-bold">
           {difficultyLabel}
         </span>
         <button
           onClick={handleReset}
-          className="text-amber-800 hover:text-amber-600 text-lg font-bold py-1 px-3 rounded-lg hover:bg-amber-100 transition"
+          className="text-amber-800 hover:text-amber-600 text-base font-bold py-1.5 px-3 rounded-2xl hover:bg-white/60 transition-all active:scale-95"
         >
           🔄 最初から
         </button>
       </div>
 
-      {/* 手数 & 経過時間 */}
-      <div className="flex items-center justify-center gap-4 mb-3">
+      {/* Move count & time */}
+      <div className="flex items-center justify-center gap-3 mb-3">
         <span className="game-info-pill">
           📋 {moveCount}手目
         </span>
@@ -398,35 +390,32 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
         </span>
       </div>
 
-      {/* 源さんの吹き出し */}
-      <ChatBubble messages={bubbles} />
-
-      {/* メッセージ */}
-      <div className={`text-center text-xl md:text-2xl font-bold mb-3 py-3 rounded-xl ${
+      {/* Message */}
+      <div className={`text-center text-lg md:text-xl font-bold mb-3 py-2.5 rounded-2xl backdrop-blur-sm ${
         isGameOver
           ? (game.winner === playerSide && !resigned)
-            ? 'bg-green-100 text-green-800 border border-green-200'
-            : 'bg-red-50 text-red-800 border border-red-200'
+            ? 'bg-green-100/80 text-green-800 border border-green-200/60'
+            : 'bg-red-50/80 text-red-800 border border-red-200/60'
           : game.status === 'check'
-            ? 'bg-yellow-100 text-yellow-800 border border-yellow-200'
+            ? 'bg-yellow-100/80 text-yellow-800 border border-yellow-200/60'
             : thinking
-              ? 'bg-blue-50 text-blue-800 border border-blue-200'
-              : 'bg-amber-50 text-amber-800 border border-amber-200'
+              ? 'bg-blue-50/80 text-blue-800 border border-blue-200/60'
+              : 'bg-white/60 text-amber-800 border border-amber-200/40'
       }`}>
         {message}
       </div>
 
-      {/* 後手持ち駒 */}
-      <div className="mb-2 p-2 bg-amber-100/80 rounded-lg">
-        <div className="text-xs md:text-sm text-amber-700 mb-1 font-bold">
+      {/* Gote captured pieces */}
+      <div className="mb-2 p-2 bg-white/40 backdrop-blur-sm rounded-2xl border border-amber-200/30">
+        <div className="text-xs text-amber-600 mb-1 font-bold">
           △ AI の持ち駒
         </div>
-        <div className="flex flex-wrap gap-1 min-h-[2rem]">
+        <div className="flex flex-wrap gap-1 min-h-[1.75rem]">
           {capturedPieceTypes.map(pt => {
             const count = game.captured.gote[pt] || 0;
             if (count <= 0) return null;
             return (
-              <span key={pt} className="inline-flex items-center bg-amber-200 px-2 py-1 rounded text-sm md:text-base font-bold text-amber-900">
+              <span key={pt} className="inline-flex items-center bg-amber-100/80 px-2 py-0.5 rounded-full text-sm font-bold text-amber-900">
                 {PIECE_KANJI[pt]}{count > 1 ? `×${count}` : ''}
               </span>
             );
@@ -434,23 +423,20 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
         </div>
       </div>
 
-      {/* 将棋盤 */}
+      {/* Board */}
       <div className="flex justify-center">
         <div className="relative">
-          {/* 筋番号（上） */}
           <div className="flex ml-6 mr-4">
             {colNumbers.map((n, i) => (
-              <div key={i} className="flex-1 text-center text-xs md:text-sm text-amber-700 font-bold">
+              <div key={i} className="flex-1 text-center text-xs md:text-sm text-amber-600 font-bold">
                 {n}
               </div>
             ))}
           </div>
 
           <div className="flex">
-            {/* 盤面 */}
-            <div className="board-texture rounded-sm shadow-lg border-2 border-amber-900/50 p-0">
+            <div className="board-texture rounded-lg shadow-lg border-2 border-amber-900/40 p-0">
               <div className="grid grid-cols-9 relative" style={{ width: 'min(85vw, 450px)', height: 'min(85vw, 450px)' }}>
-                {/* 星印 */}
                 {starPositions.map((pos, idx) => {
                   const cellW = 100 / 9;
                   const left = `${(pos.col + 0.5) * cellW}%`;
@@ -512,12 +498,11 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
               </div>
             </div>
 
-            {/* 段ラベル（右） */}
             <div className="flex flex-col ml-1">
               {rowLabels.map((label, i) => (
                 <div
                   key={i}
-                  className="flex-1 flex items-center text-xs md:text-sm text-amber-700 font-bold"
+                  className="flex-1 flex items-center text-xs md:text-sm text-amber-600 font-bold"
                 >
                   {label}
                 </div>
@@ -527,12 +512,12 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
         </div>
       </div>
 
-      {/* 先手持ち駒 */}
-      <div className="mt-2 p-2 bg-amber-100/80 rounded-lg">
-        <div className="text-xs md:text-sm text-amber-700 mb-1 font-bold">
+      {/* Sente captured pieces */}
+      <div className="mt-2 p-2 bg-white/40 backdrop-blur-sm rounded-2xl border border-amber-200/30">
+        <div className="text-xs text-amber-600 mb-1 font-bold">
           ▲ あなたの持ち駒（タップで打つ）
         </div>
-        <div className="flex flex-wrap gap-1 min-h-[2rem]">
+        <div className="flex flex-wrap gap-1 min-h-[1.75rem]">
           {capturedPieceTypes.map(pt => {
             const count = game.captured.sente[pt] || 0;
             if (count <= 0) return null;
@@ -540,10 +525,10 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
               <button
                 key={pt}
                 onClick={() => handleCapturedClick(pt)}
-                className={`inline-flex items-center px-3 py-1.5 rounded text-base md:text-lg font-bold transition
+                className={`inline-flex items-center px-3 py-1 rounded-full text-base font-bold transition-all active:scale-95
                   ${selectedDrop === pt
                     ? 'bg-yellow-400 text-amber-900 shadow-md'
-                    : 'bg-amber-200 hover:bg-amber-300 text-amber-900'
+                    : 'bg-amber-100/80 hover:bg-amber-200/80 text-amber-900'
                   }`}
               >
                 {PIECE_KANJI[pt]}{count > 1 ? `×${count}` : ''}
@@ -553,50 +538,50 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
         </div>
       </div>
 
-      {/* 投了ボタン */}
+      {/* Resign button */}
       {!isGameOver && (
         <div className="mt-4 text-center">
           <button
             onClick={() => setShowResignConfirm(true)}
-            className="text-amber-700/70 hover:text-red-700 text-base font-bold py-2 px-6 rounded-lg border border-amber-300 hover:border-red-300 hover:bg-red-50 transition"
+            className="text-amber-600/60 hover:text-red-600 text-sm font-bold py-2 px-6 rounded-full border border-amber-200/40 hover:border-red-300 hover:bg-red-50/50 transition-all active:scale-95"
           >
             🏳 投了する
           </button>
         </div>
       )}
 
-      {/* 対局終了時の再戦ボタン */}
+      {/* Rematch button */}
       {isGameOver && (
         <div className="mt-4 text-center">
           <button
             onClick={handleReset}
-            className="btn-warm bg-gradient-to-r from-amber-700 to-amber-800 text-white text-lg font-bold py-3 px-8 rounded-xl shadow-lg"
+            className="btn-ios bg-gradient-to-r from-amber-700 to-amber-800 text-white text-lg font-bold py-3 px-8 shadow-lg active:scale-95"
           >
             🔄 もう一局
           </button>
         </div>
       )}
 
-      {/* 投了確認ダイアログ */}
+      {/* Resign confirm dialog */}
       {showResignConfirm && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 shadow-2xl max-w-xs w-full mx-4">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="ios-card p-6 max-w-xs w-full mx-4">
             <p className="text-xl font-bold text-amber-900 text-center mb-2">
               投了しますか？
             </p>
-            <p className="text-sm text-amber-700 text-center mb-6">
+            <p className="text-sm text-amber-600 text-center mb-6">
               AIの勝ちになります
             </p>
-            <div className="flex gap-4">
+            <div className="flex gap-3">
               <button
                 onClick={handleResign}
-                className="flex-1 bg-red-600 hover:bg-red-500 text-white text-xl font-bold py-4 rounded-xl transition active:scale-95"
+                className="flex-1 btn-ios bg-red-600 hover:bg-red-500 text-white text-lg font-bold py-3.5 active:scale-95"
               >
                 投了
               </button>
               <button
                 onClick={() => setShowResignConfirm(false)}
-                className="flex-1 bg-gray-400 hover:bg-gray-300 text-white text-xl font-bold py-4 rounded-xl transition active:scale-95"
+                className="flex-1 btn-ios bg-gray-200 hover:bg-gray-300 text-gray-700 text-lg font-bold py-3.5 active:scale-95"
               >
                 続ける
               </button>
@@ -605,23 +590,23 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
         </div>
       )}
 
-      {/* 成り/不成ダイアログ */}
+      {/* Promote dialog */}
       {showPromote && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 shadow-2xl max-w-xs w-full mx-4">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="ios-card p-6 max-w-xs w-full mx-4">
             <p className="text-xl font-bold text-amber-900 text-center mb-6">
               成りますか？
             </p>
-            <div className="flex gap-4">
+            <div className="flex gap-3">
               <button
                 onClick={() => showPromote.callback(true)}
-                className="flex-1 bg-red-600 hover:bg-red-500 text-white text-xl font-bold py-4 rounded-xl transition active:scale-95"
+                className="flex-1 btn-ios bg-red-600 hover:bg-red-500 text-white text-lg font-bold py-3.5 active:scale-95"
               >
                 成る
               </button>
               <button
                 onClick={() => showPromote.callback(false)}
-                className="flex-1 bg-gray-500 hover:bg-gray-400 text-white text-xl font-bold py-4 rounded-xl transition active:scale-95"
+                className="flex-1 btn-ios bg-gray-200 hover:bg-gray-300 text-gray-700 text-lg font-bold py-3.5 active:scale-95"
               >
                 不成
               </button>

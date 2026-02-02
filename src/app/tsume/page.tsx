@@ -34,7 +34,7 @@ export default function TsumePage() {
     setSelectedProblemIndex(null);
   };
 
-  // 問題詳細表示
+  // Problem detail view
   if (selectedDifficulty && selectedProblemIndex !== null && filteredProblems[selectedProblemIndex]) {
     const problem = filteredProblems[selectedProblemIndex];
     return (
@@ -54,24 +54,23 @@ export default function TsumePage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8 md:py-12">
+    <div className="max-w-2xl mx-auto px-5 py-8 md:py-12">
       <div className="text-center mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold text-amber-900 mb-3">
+        <h1 className="text-2xl md:text-3xl font-bold text-amber-900 mb-3">
           🧩 毎日の詰将棋
         </h1>
-        <p className="text-lg text-amber-800 leading-relaxed">
-          毎日コツコツ解いて、<br className="md:hidden" />
-          将棋の力と脳の健康を育てましょう。
+        <p className="text-base text-amber-700 leading-relaxed">
+          毎日コツコツ解いて、将棋の力と脳の健康を育てましょう。
         </p>
       </div>
 
-      {/* 難易度選択 */}
+      {/* Difficulty selection */}
       {!selectedDifficulty && (
         <>
           <div className="space-y-4 max-w-md mx-auto">
             <button
               onClick={() => handleSelectDifficulty('beginner')}
-              className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 text-white text-xl md:text-2xl font-bold py-5 px-8 rounded-xl shadow-lg transition-all hover:shadow-xl active:scale-[0.98]"
+              className="w-full btn-ios bg-gradient-to-r from-green-600 to-green-700 text-white text-xl md:text-2xl font-bold py-5 px-8 shadow-lg active:scale-97"
             >
               🌱 やさしい（一手詰め）
               <span className="block text-sm mt-1 font-normal opacity-80">
@@ -81,7 +80,7 @@ export default function TsumePage() {
 
             <button
               onClick={() => handleSelectDifficulty('intermediate')}
-              className="w-full bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white text-xl md:text-2xl font-bold py-5 px-8 rounded-xl shadow-lg transition-all hover:shadow-xl active:scale-[0.98]"
+              className="w-full btn-ios bg-gradient-to-r from-amber-600 to-amber-700 text-white text-xl md:text-2xl font-bold py-5 px-8 shadow-lg active:scale-97"
             >
               ⚔️ ふつう（三手詰め）
               <span className="block text-sm mt-1 font-normal opacity-80">
@@ -91,7 +90,7 @@ export default function TsumePage() {
 
             <button
               onClick={() => handleSelectDifficulty('advanced')}
-              className="w-full bg-gradient-to-r from-red-700 to-red-800 hover:from-red-600 hover:to-red-700 text-white text-xl md:text-2xl font-bold py-5 px-8 rounded-xl shadow-lg transition-all hover:shadow-xl active:scale-[0.98]"
+              className="w-full btn-ios bg-gradient-to-r from-red-700 to-red-800 text-white text-xl md:text-2xl font-bold py-5 px-8 shadow-lg active:scale-97"
             >
               🔥 むずかしい（五〜七手詰め）
               <span className="block text-sm mt-1 font-normal opacity-80">
@@ -100,19 +99,15 @@ export default function TsumePage() {
             </button>
           </div>
 
-          {/* 脳トレ豆知識 */}
-          <div className="mt-12 bg-white/60 rounded-2xl p-6 md:p-8 shadow-sm">
-            <h2 className="text-xl md:text-2xl font-bold text-amber-900 mb-4">
+          {/* Brain training info */}
+          <div className="mt-10 ios-card p-6 md:p-8">
+            <h2 className="text-lg md:text-xl font-bold text-amber-900 mb-4">
               🧠 知っていますか？
             </h2>
-            <div className="space-y-4 text-base md:text-lg text-amber-900 leading-relaxed">
+            <div className="space-y-3 text-sm md:text-base text-amber-800 leading-relaxed">
               <p>
                 将棋は<strong>「最高の脳トレ」</strong>と言われています。
                 先を読む力、記憶力、判断力を同時に鍛えることができます。
-              </p>
-              <p>
-                東北大学の研究によると、将棋を定期的に指す人は
-                <strong>認知機能の低下が緩やかになる</strong>傾向があるそうです。
               </p>
               <p>
                 毎日たった<strong>10分の詰将棋</strong>でも、
@@ -123,25 +118,25 @@ export default function TsumePage() {
         </>
       )}
 
-      {/* 問題リスト */}
+      {/* Problem list */}
       {selectedDifficulty && selectedProblemIndex === null && (
         <div>
           <div className="mb-6">
             <button
               onClick={handleBackToDifficulty}
-              className="text-amber-700 hover:text-amber-500 text-lg font-bold transition"
+              className="text-amber-600 hover:text-amber-500 text-base font-bold transition active:scale-95"
             >
               ← 難易度選択に戻る
             </button>
           </div>
 
           <div className="mb-6 text-center">
-            <span className={`inline-block text-lg md:text-xl font-bold px-5 py-2 rounded-full ${
+            <span className={`inline-block text-base font-bold px-5 py-2 rounded-full ${
               selectedDifficulty === 'beginner'
-                ? 'bg-green-100 text-green-800'
+                ? 'bg-green-100/80 text-green-800'
                 : selectedDifficulty === 'intermediate'
-                  ? 'bg-amber-100 text-amber-800'
-                  : 'bg-red-100 text-red-800'
+                  ? 'bg-amber-100/80 text-amber-800'
+                  : 'bg-red-100/80 text-red-800'
             }`}>
               {selectedDifficulty === 'beginner' && '🌱 やさしい（一手詰め）'}
               {selectedDifficulty === 'intermediate' && '⚔️ ふつう（三手詰め）'}
@@ -154,18 +149,18 @@ export default function TsumePage() {
               <button
                 key={problem.id}
                 onClick={() => handleSelectProblem(index)}
-                className="w-full text-left bg-white/70 hover:bg-white/90 rounded-xl p-4 md:p-5 shadow-sm hover:shadow-md transition-all active:scale-[0.99] border border-amber-200/50"
+                className="w-full text-left ios-card hover:bg-white/90 p-4 md:p-5 transition-all active:scale-[0.99]"
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-lg md:text-xl font-bold text-amber-900">
+                    <h3 className="text-base md:text-lg font-bold text-amber-900">
                       {problem.title}
                     </h3>
-                    <p className="text-sm md:text-base text-amber-700 mt-1">
+                    <p className="text-sm text-amber-600 mt-1">
                       {problem.description}
                     </p>
                   </div>
-                  <div className="text-amber-500 text-2xl ml-3 flex-shrink-0">
+                  <div className="text-amber-400 text-xl ml-3 flex-shrink-0">
                     ▶
                   </div>
                 </div>
@@ -174,15 +169,6 @@ export default function TsumePage() {
           </div>
         </div>
       )}
-
-      <div className="mt-8 text-center">
-        <Link
-          href="/"
-          className="text-amber-700 hover:text-amber-500 text-lg font-bold transition"
-        >
-          ← トップに戻る
-        </Link>
-      </div>
     </div>
   );
 }
