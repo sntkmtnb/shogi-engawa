@@ -365,8 +365,8 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
   // Available for board: 100dvh - 15 - 4 - 4 - 4 = ~73dvh, minus some padding
   // Board = min(~65dvh, 100vw - padding)
   // Layout: chat(auto) + AI持ち駒(24px) + board + colNumbers(20px) + 自分持ち駒(28px) + controls(48px)
-  // Board = 65dvh max, vw-limited on narrow screens
-  const boardSize = 'min(65dvh, calc(100vw - 52px))';
+  // Board = 70dvh max, vw - 32px (row labels take 16px + 8px padding each side)
+  const boardSize = 'min(70dvh, calc(100vw - 32px))';
 
   return (
     <div
@@ -412,7 +412,7 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
       </div>
 
       {/* Board - auto height, centered horizontally */}
-      <div className="flex-shrink-0 flex justify-center px-1">
+      <div className="flex-shrink-0 flex justify-center px-0">
         <div className="relative">
           {/* Column numbers */}
           <div className="flex" style={{ width: boardSize, marginLeft: '0', paddingRight: '0' }}>
@@ -494,11 +494,11 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
             </div>
 
             {/* Row labels */}
-            <div className="flex flex-col ml-0.5" style={{ height: boardSize, width: '20px' }}>
+            <div className="flex flex-col ml-0.5" style={{ height: boardSize, width: '16px' }}>
               {rowLabels.map((label, i) => (
                 <div
                   key={i}
-                  className="flex-1 flex items-center justify-center text-sm text-amber-800 font-bold"
+                  className="flex-1 flex items-center justify-center text-xs text-amber-800 font-bold"
                 >
                   {label}
                 </div>
