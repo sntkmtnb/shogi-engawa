@@ -12,7 +12,7 @@ import {
   isCheckmate, isStalemate, canPromoteMove, mustPromote,
 } from '@/lib/moves';
 import { getAIMove } from '@/lib/ai';
-import { getComment, shouldMumble, getTimeBasedGreeting, getReviewComments } from '@/lib/comments';
+import { getComment, shouldMumble, getTimeBasedGreeting, getReviewComments, getMoveCountComment, getFlowComment, CommentType } from '@/lib/comments';
 import { playKomaSound, playCheckSound } from '@/lib/sound';
 import ChatArea, { ChatMessage } from '@/components/ChatArea';
 
@@ -45,8 +45,11 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
   const [showReview, setShowReview] = useState(false);
   const [reviewComments, setReviewComments] = useState<string[]>([]);
   const [visibleReviewCount, setVisibleReviewCount] = useState(0);
+  const [undoCount, setUndoCount] = useState(0);
+  const [hintUsed, setHintUsed] = useState(false);
   const mumbleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const MAX_UNDO = 3;
   const playerSide: Player = 'sente';
   const aiSide: Player = 'gote';
 
@@ -59,6 +62,21 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
       return next;
     });
   }, []);
+
+  // Phase-based comment selection
+  const getPhaseComment = useCallback((moveCount: number): string => {
+    if (moveCount < 10) return getComment('openingPhase');
+    if (moveCount < 40) return getComment('middlePhase');
+    return getComment('endPhase');
+  }, []);
+
+  // Check for move count milestone comments
+  const checkMoveCountComment = useCallback((moveCount: number) => {
+    const comment = getMoveCountComment(moveCount);
+    if (comment) {
+      setTimeout(() => addChat(comment), 1500);
+    }
+  }, [addChat]);
 
   // Opening comment - time-based greeting
   useEffect(() => {
@@ -111,9 +129,15 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
 
       if (aiMove.promote) {
         addChat(getComment('promoteByAI'));
+      } else if (Math.random() < 0.3) {
+        // 30% chance to use phase-based comment instead of generic
+        addChat(getPhaseComment(newGame.moveHistory.length));
       } else {
         addChat(getComment('aiMoved'));
       }
+
+      // Check for move count milestone
+      checkMoveCountComment(newGame.moveHistory.length);
 
       if (isCheckmate(newGame.board, newGame.captured, playerSide)) {
         newGame.status = 'checkmate';
@@ -159,6 +183,9 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
 
     playKomaSound();
 
+    // Reset hint for new move
+    setHintUsed(false);
+
     if (promote) {
       addChat(getComment('promoteByPlayer'));
     } else if (move.capture) {
@@ -171,6 +198,9 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
       } else {
         addChat(getComment('playerMove'));
       }
+    } else if (Math.random() < 0.2) {
+      // 20% chance for phase comment on player move
+      addChat(getPhaseComment(newGame.moveHistory.length));
     } else {
       if (Math.random() < 0.25) {
         addChat(getComment('playerMoveGood'));
@@ -178,6 +208,9 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
         addChat(getComment('playerMove'));
       }
     }
+
+    // Check for move count milestone
+    checkMoveCountComment(newGame.moveHistory.length);
 
     if (isCheckmate(newGame.board, newGame.captured, aiSide)) {
       newGame.status = 'checkmate';
@@ -211,6 +244,63 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
       setTimeout(() => doAITurn(newGame), 100);
     }
   }, [game, playerSide, aiSide, doAITurn, addChat]);
+
+  // Hint handler
+  const handleHint = useCallback(() => {
+    const gameOver = game.status === 'checkmate' || game.status === 'stalemate' || resigned;
+    if (thinking || game.turn !== playerSide || gameOver || hintUsed) return;
+    const goodMove = getAIMove(game.board, game.captured, playerSide, 'normal');
+    if (goodMove) {
+      setSelected(goodMove.from);
+      if (goodMove.from) {
+        setLegalMoves([goodMove.to]);
+      } else {
+        setLegalMoves([goodMove.to]);
+        if (goodMove.dropPiece) setSelectedDrop(goodMove.dropPiece);
+      }
+      addChat(getComment('hint'));
+      setHintUsed(true);
+    }
+  }, [thinking, game, playerSide, resigned, hintUsed, addChat]);
+
+  // Undo handler - undo 2 moves (player + AI)
+  const handleUndo = useCallback(() => {
+    const gameOver = game.status === 'checkmate' || game.status === 'stalemate' || resigned;
+    if (undoCount >= MAX_UNDO || game.moveHistory.length < 2 || thinking || gameOver) return;
+    if (game.turn !== playerSide) return; // only when it's player's turn
+
+    // We need to rebuild the game state by replaying all moves except the last 2
+    const movesToReplay = game.moveHistory.slice(0, -2);
+
+    // Reset to initial state and replay
+    let newGame = createInitialGameState();
+    for (const move of movesToReplay) {
+      const side = newGame.turn;
+      const result = applyMove(newGame.board, newGame.captured, move, side);
+      newGame.board = result.board;
+      newGame.captured = result.captured;
+      newGame.turn = side === 'sente' ? 'gote' : 'sente';
+      newGame.moveHistory.push(move);
+    }
+
+    // Re-check status
+    if (isInCheck(newGame.board, newGame.turn)) {
+      newGame.status = 'check';
+    } else {
+      newGame.status = 'playing';
+    }
+
+    setGame(newGame);
+    setSelected(null);
+    setSelectedDrop(null);
+    setLegalMoves([]);
+    setLastMove(movesToReplay.length > 0
+      ? { from: movesToReplay[movesToReplay.length - 1].from, to: movesToReplay[movesToReplay.length - 1].to }
+      : null
+    );
+    setUndoCount(prev => prev + 1);
+    addChat(getComment('undo'));
+  }, [undoCount, game, thinking, resigned, playerSide, addChat]);
 
   // Cell click
   const handleCellClick = useCallback((row: number, col: number) => {
@@ -337,6 +427,8 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
     setReviewComments([]);
     setVisibleReviewCount(0);
     setChatMessages([]);
+    setUndoCount(0);
+    setHintUsed(false);
     if (mumbleTimerRef.current) clearTimeout(mumbleTimerRef.current);
     setTimeout(() => addChat(getTimeBasedGreeting()), 500);
   };
@@ -543,6 +635,39 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
         >
           ←
         </button>
+        {!isGameOver && (
+          <button
+            onClick={handleHint}
+            className={`text-lg active:scale-90 transition-all p-1.5 ${
+              hintUsed || thinking || game.turn !== playerSide
+                ? 'text-amber-700/30 cursor-default'
+                : 'text-amber-700/60 hover:text-amber-800'
+            }`}
+            title="ヒント"
+            disabled={hintUsed || thinking || game.turn !== playerSide}
+          >
+            💡
+          </button>
+        )}
+        {!isGameOver && (
+          <button
+            onClick={handleUndo}
+            className={`text-lg active:scale-90 transition-all p-1.5 relative ${
+              undoCount >= MAX_UNDO || game.moveHistory.length < 2 || thinking || game.turn !== playerSide
+                ? 'text-amber-700/30 cursor-default'
+                : 'text-amber-700/60 hover:text-amber-800'
+            }`}
+            title={`待った（残り${MAX_UNDO - undoCount}回）`}
+            disabled={undoCount >= MAX_UNDO || game.moveHistory.length < 2 || thinking || game.turn !== playerSide}
+          >
+            ↩️
+            {undoCount < MAX_UNDO && (
+              <span className="absolute -top-0.5 -right-0.5 text-[9px] text-amber-600 font-bold">
+                {MAX_UNDO - undoCount}
+              </span>
+            )}
+          </button>
+        )}
         <button
           onClick={handleReset}
           className="text-amber-700/60 hover:text-amber-800 text-lg active:scale-90 transition-all p-1.5"
