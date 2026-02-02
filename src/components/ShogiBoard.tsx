@@ -12,7 +12,8 @@ import {
   isCheckmate, isStalemate, canPromoteMove, mustPromote,
 } from '@/lib/moves';
 import { getAIMove } from '@/lib/ai';
-import { getComment, shouldMumble } from '@/lib/comments';
+import { getComment, shouldMumble, getTimeBasedGreeting, getReviewComments } from '@/lib/comments';
+import { playKomaSound, playCheckSound } from '@/lib/sound';
 import ChatArea, { ChatMessage } from '@/components/ChatArea';
 
 interface ShogiBoardProps {
@@ -41,6 +42,9 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
     result: 'win' | 'lose' | 'draw';
     comment: string;
   } | null>(null);
+  const [showReview, setShowReview] = useState(false);
+  const [reviewComments, setReviewComments] = useState<string[]>([]);
+  const [visibleReviewCount, setVisibleReviewCount] = useState(0);
   const mumbleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const playerSide: Player = 'sente';
@@ -56,9 +60,9 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
     });
   }, []);
 
-  // Opening comment
+  // Opening comment - time-based greeting
   useEffect(() => {
-    const t = setTimeout(() => addChat(getComment('gameStart')), 500);
+    const t = setTimeout(() => addChat(getTimeBasedGreeting()), 500);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -69,6 +73,16 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
       if (mumbleTimerRef.current) clearTimeout(mumbleTimerRef.current);
     }
   }, [game.status, resigned]);
+
+  // Review comments fade-in effect
+  useEffect(() => {
+    if (showReview && visibleReviewCount < reviewComments.length) {
+      const t = setTimeout(() => {
+        setVisibleReviewCount(prev => prev + 1);
+      }, 1500);
+      return () => clearTimeout(t);
+    }
+  }, [showReview, visibleReviewCount, reviewComments.length]);
 
   // AI turn
   const doAITurn = useCallback((currentGame: GameState) => {
@@ -93,6 +107,8 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
       newGame.turn = playerSide;
       newGame.moveHistory.push(aiMove);
 
+      playKomaSound();
+
       if (aiMove.promote) {
         addChat(getComment('promoteByAI'));
       } else {
@@ -114,7 +130,10 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
         setShowGameOver(true);
       } else if (isInCheck(newGame.board, playerSide)) {
         newGame.status = 'check';
-        setTimeout(() => addChat(getComment('checkGiven')), 300);
+        setTimeout(() => {
+          playCheckSound();
+          addChat(getComment('checkGiven'));
+        }, 300);
       } else {
         newGame.status = 'playing';
         if (shouldMumble(newGame.moveHistory.length)) {
@@ -137,6 +156,8 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
     newGame.captured = result.captured;
     newGame.turn = aiSide;
     newGame.moveHistory.push(actualMove);
+
+    playKomaSound();
 
     if (promote) {
       addChat(getComment('promoteByPlayer'));
@@ -173,7 +194,10 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
       setShowGameOver(true);
     } else if (isInCheck(newGame.board, aiSide)) {
       newGame.status = 'check';
-      setTimeout(() => addChat(getComment('checkReceived')), 300);
+      setTimeout(() => {
+        playCheckSound();
+        addChat(getComment('checkReceived'));
+      }, 300);
     }
 
     setLastMove({ from: move.from, to: move.to });
@@ -309,9 +333,12 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
     setShowResignConfirm(false);
     setShowGameOver(false);
     setGameOverInfo(null);
+    setShowReview(false);
+    setReviewComments([]);
+    setVisibleReviewCount(0);
     setChatMessages([]);
     if (mumbleTimerRef.current) clearTimeout(mumbleTimerRef.current);
-    setTimeout(() => addChat(getComment('gameStart')), 500);
+    setTimeout(() => addChat(getTimeBasedGreeting()), 500);
   };
 
   const getKanjiDisplay = (type: AnyPieceType, owner: Player): string => {
@@ -337,7 +364,7 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
   // Layout: chat(~15dvh) + goteCaptured(~4dvh) + board + senteCaptured(~4dvh) + controls(~4dvh)
   // Available for board: 100dvh - 15 - 4 - 4 - 4 = ~73dvh, minus some padding
   // Board = min(~65dvh, 100vw - padding)
-  const boardSize = 'min(66dvh, calc(100vw - 16px))';
+  const boardSize = 'min(calc(100dvh - 200px), calc(100vw - 16px))';
 
   return (
     <div
@@ -389,7 +416,7 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
           {/* Column numbers */}
           <div className="flex ml-5 mr-3" style={{ width: boardSize }}>
             {colNumbers.map((n, i) => (
-              <div key={i} className="flex-1 text-center text-sm md:text-base text-amber-800 font-bold">
+              <div key={i} className="flex-1 text-center text-base md:text-lg text-amber-900 font-bold" style={{ background: 'rgba(222,184,135,0.3)', borderRadius: '2px' }}>
                 {n}
               </div>
             ))}
@@ -466,11 +493,12 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
             </div>
 
             {/* Row labels */}
-            <div className="flex flex-col ml-0.5" style={{ height: boardSize }}>
+            <div className="flex flex-col ml-1 mr-2" style={{ height: boardSize }}>
               {rowLabels.map((label, i) => (
                 <div
                   key={i}
-                  className="flex-1 flex items-center text-sm md:text-base text-amber-800 font-bold"
+                  className="flex-1 flex items-center text-base md:text-lg text-amber-900 font-bold"
+                  style={{ background: 'rgba(222,184,135,0.3)', borderRadius: '2px' }}
                 >
                   {label}
                 </div>
@@ -536,56 +564,116 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
       {/* ===== Game Over Popup ===== */}
       {showGameOver && gameOverInfo && (
         <div className="game-over-overlay">
-          <div className="game-over-modal">
-            {gameOverInfo.result === 'win' && (
+          <div className="game-over-modal" style={{ maxHeight: '85dvh', overflowY: 'auto' }}>
+            {!showReview ? (
               <>
-                <div className="text-5xl mb-3">🎉</div>
-                <h2 className="text-2xl font-bold text-amber-900 mb-2">
-                  おめでとうございます！
-                </h2>
-                <p className="text-base text-amber-700 mb-1">見事な勝利です！</p>
-              </>
-            )}
-            {gameOverInfo.result === 'lose' && (
-              <>
-                <div className="text-5xl mb-3">😤</div>
-                <h2 className="text-2xl font-bold text-amber-900 mb-2">
-                  残念！
-                </h2>
-                <p className="text-base text-amber-700 mb-1">次は勝てるはず…！</p>
-              </>
-            )}
-            {gameOverInfo.result === 'draw' && (
-              <>
-                <div className="text-5xl mb-3">🤝</div>
-                <h2 className="text-2xl font-bold text-amber-900 mb-2">
-                  いい勝負！
-                </h2>
-              </>
-            )}
+                {gameOverInfo.result === 'win' && (
+                  <>
+                    <div className="text-5xl mb-3">🎉</div>
+                    <h2 className="text-2xl font-bold text-amber-900 mb-2">
+                      おめでとうございます！
+                    </h2>
+                    <p className="text-base text-amber-700 mb-1">見事な勝利です！</p>
+                  </>
+                )}
+                {gameOverInfo.result === 'lose' && (
+                  <>
+                    <div className="text-5xl mb-3">😤</div>
+                    <h2 className="text-2xl font-bold text-amber-900 mb-2">
+                      残念！
+                    </h2>
+                    <p className="text-base text-amber-700 mb-1">次は勝てるはず…！</p>
+                  </>
+                )}
+                {gameOverInfo.result === 'draw' && (
+                  <>
+                    <div className="text-5xl mb-3">🤝</div>
+                    <h2 className="text-2xl font-bold text-amber-900 mb-2">
+                      いい勝負！
+                    </h2>
+                  </>
+                )}
 
-            {/* Gen-san's comment */}
-            <div className="flex items-start gap-2 mt-3 mb-5 text-left bg-amber-50/60 rounded-xl p-3">
-              <div className="chat-avatar flex-shrink-0">源</div>
-              <p className="text-sm text-amber-800 font-medium leading-relaxed">
-                {gameOverInfo.comment}
-              </p>
-            </div>
+                {/* Gen-san's comment */}
+                <div className="flex items-start gap-2 mt-3 mb-5 text-left bg-amber-50/60 rounded-xl p-3">
+                  <div className="chat-avatar flex-shrink-0">源</div>
+                  <p className="text-sm text-amber-800 font-medium leading-relaxed">
+                    {gameOverInfo.comment}
+                  </p>
+                </div>
 
-            <div className="flex gap-3">
-              <button
-                onClick={handleReset}
-                className="flex-1 btn-ios bg-gradient-to-r from-amber-700 to-amber-800 text-white text-base font-bold py-3 active:scale-95"
-              >
-                🔄 もう一局
-              </button>
-              <button
-                onClick={onBack}
-                className="flex-1 btn-ios bg-white/60 text-amber-800 text-base font-bold py-3 border border-amber-200/40 active:scale-95"
-              >
-                戻る
-              </button>
-            </div>
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => {
+                      const comments = getReviewComments(
+                        gameOverInfo.result === 'win',
+                        game.moveHistory.length
+                      );
+                      setReviewComments(comments);
+                      setVisibleReviewCount(1);
+                      setShowReview(true);
+                    }}
+                    className="w-full btn-ios bg-amber-100/80 text-amber-800 text-base font-bold py-3 border border-amber-300/40 active:scale-95"
+                  >
+                    🍵 感想戦を見る
+                  </button>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleReset}
+                      className="flex-1 btn-ios bg-gradient-to-r from-amber-700 to-amber-800 text-white text-base font-bold py-3 active:scale-95"
+                    >
+                      🔄 もう一局
+                    </button>
+                    <button
+                      onClick={onBack}
+                      className="flex-1 btn-ios bg-white/60 text-amber-800 text-base font-bold py-3 border border-amber-200/40 active:scale-95"
+                    >
+                      戻る
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="text-3xl mb-2">🍵</div>
+                <h2 className="text-xl font-bold text-amber-900 mb-4">感想戦</h2>
+
+                <div className="flex flex-col gap-3 mb-5">
+                  {reviewComments.slice(0, visibleReviewCount).map((comment, i) => (
+                    <div
+                      key={i}
+                      className="flex items-start gap-2 text-left bg-amber-50/60 rounded-xl p-3"
+                      style={{
+                        animation: 'chatMsgIn 0.5s ease-out',
+                      }}
+                    >
+                      <div className="chat-avatar flex-shrink-0">源</div>
+                      <p className="text-sm text-amber-800 font-medium leading-relaxed">
+                        {comment}
+                      </p>
+                    </div>
+                  ))}
+                  {visibleReviewCount < reviewComments.length && (
+                    <div className="text-center text-amber-600 text-xs animate-pulse">…</div>
+                  )}
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleReset}
+                    className="flex-1 btn-ios bg-gradient-to-r from-amber-700 to-amber-800 text-white text-base font-bold py-3 active:scale-95"
+                  >
+                    🔄 もう一局
+                  </button>
+                  <button
+                    onClick={onBack}
+                    className="flex-1 btn-ios bg-white/60 text-amber-800 text-base font-bold py-3 border border-amber-200/40 active:scale-95"
+                  >
+                    戻る
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

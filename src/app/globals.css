@@ -10,7 +10,7 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
   /* Rich background with layered gradients for frosted glass effect */
   background:
     radial-gradient(ellipse at 20% 50%, rgba(255,200,150,0.2) 0%, transparent 50%),

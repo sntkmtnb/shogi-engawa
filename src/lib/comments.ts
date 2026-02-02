@@ -4,6 +4,74 @@ function pick(arr: string[]): string {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+export function getTimeBasedGreeting(): string {
+  const hour = new Date().getHours(); // ブラウザのローカル時間
+  if (hour >= 5 && hour < 10) {
+    // 朝
+    return pick([
+      'おはよう！朝の一局は頭がスッキリするで',
+      '早起きやな！朝のうちに一局やるか',
+      'おっ、おはよう。コーヒー入れたとこや',
+      '朝の将棋は格別やで。さ、やろか',
+    ]);
+  } else if (hour >= 10 && hour < 17) {
+    // 昼
+    return pick([
+      'よっ、来たな！ちょうど暇してたんや',
+      'いい時間やな。一局いこか',
+      'おっ、久しぶり…って昨日も来てたな笑',
+      '今日もええ天気や。縁台将棋日和やで',
+    ]);
+  } else if (hour >= 17 && hour < 22) {
+    // 夕方〜夜
+    return pick([
+      'お疲れさん！仕事帰りか？一局やるか',
+      '夕方の将棋もなかなかオツなもんやで',
+      'おっ、来たな。晩飯前にサクッと一局？',
+      '今日も一日頑張ったやろ。将棋で頭のリセットや',
+    ]);
+  } else {
+    // 深夜
+    return pick([
+      'おいおい、こんな時間にまだ起きとるんか笑',
+      '夜更かしやなぁ。…ワシもやけど',
+      '深夜の将棋は不思議と集中できるんよな',
+      'シーッ…嫁さんに見つかるで笑',
+    ]);
+  }
+}
+
+export function getReviewComments(playerWon: boolean, moveCount: number): string[] {
+  const comments: string[] = [];
+
+  if (playerWon) {
+    comments.push(pick([
+      'いやー、完敗や。見事やったで',
+      'お前さん、だいぶ強なったなぁ',
+    ]));
+  } else {
+    comments.push(pick([
+      'ドンマイドンマイ。ワシも最初は負けてばっかやったで',
+      '惜しかったなぁ。あとちょっとやったのに',
+    ]));
+  }
+
+  if (moveCount < 40) {
+    comments.push('短い対局やったな。次はもっとじっくり指そか');
+  } else if (moveCount > 80) {
+    comments.push('長い熱戦やったなぁ！こういう将棋が一番おもろいんや');
+  }
+
+  comments.push(pick([
+    '将棋はな、負けた時が一番成長するんやで',
+    'また明日もやろな。ワシはいつでもここにおるから',
+    '今日の一局、ええ勉強になったやろ？',
+    'お茶でも飲んでいきぃや',
+  ]));
+
+  return comments;
+}
+
 // --- 対局開始 ---
 const gameStart = [
   'よっ、今日もやるか！さぁ座り座り',
