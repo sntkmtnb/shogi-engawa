@@ -370,16 +370,13 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
 
   return (
     <div
-      className="no-scroll select-none flex flex-col"
+      className="no-scroll select-none flex flex-col justify-start"
       style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden' }}
     >
-      {/* Chat area - top, compact, no wasted space */}
+      {/* Chat area - takes remaining space above board */}
       <div
-        className="flex-shrink-0 overflow-hidden"
+        className="flex-1 min-h-0 overflow-hidden"
         style={{
-          height: chatMessages.length > 0 ? 'auto' : '28px',
-          maxHeight: '15dvh',
-          minHeight: '28px',
           background: 'rgba(255,255,255,0.3)',
           backdropFilter: 'blur(10px)',
           WebkitBackdropFilter: 'blur(10px)',
@@ -413,8 +410,8 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
         </div>
       </div>
 
-      {/* Board - center, flex-1 */}
-      <div className="flex-1 flex items-center justify-center min-h-0 px-1">
+      {/* Board - auto height, centered horizontally */}
+      <div className="flex-shrink-0 flex justify-center px-1">
         <div className="relative">
           {/* Column numbers */}
           <div className="flex" style={{ width: boardSize, marginLeft: '0', paddingRight: '0' }}>
