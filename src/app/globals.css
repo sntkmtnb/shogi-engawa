@@ -375,6 +375,22 @@ body {
   -webkit-touch-callout: none;
 }
 
+/* 対局画面：全画面固定 */
+.game-fullscreen {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  z-index: 50 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background: linear-gradient(180deg, #FFF8F0 0%, #FFF0E0 100%) !important;
+}
+
 /* Bottom padding for tab bar (non-game pages) */
 .main-content {
   padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
