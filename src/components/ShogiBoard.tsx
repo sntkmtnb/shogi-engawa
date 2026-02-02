@@ -364,9 +364,9 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
   // Layout: chat(~15dvh) + goteCaptured(~4dvh) + board + senteCaptured(~4dvh) + controls(~4dvh)
   // Available for board: 100dvh - 15 - 4 - 4 - 4 = ~73dvh, minus some padding
   // Board = min(~65dvh, 100vw - padding)
-  // Board needs room for: chat area (flex-1, variable) + goteCaptured(~24px) + senteCaptured(~28px) + controls(~40px) + colNumbers(~22px)
-  // Use 55dvh as safe maximum to always fit, and leave room for row labels on right
-  const boardSize = 'min(55dvh, calc(100vw - 52px))';
+  // Board must fit: chat(flex-1) + AI持ち駒(24px) + board + 自分持ち駒(28px) + controls(40px) + col numbers(20px) + padding
+  // Keep board at 50dvh max to leave room for chat
+  const boardSize = 'min(50dvh, calc(100vw - 52px))';
 
   return (
     <div
