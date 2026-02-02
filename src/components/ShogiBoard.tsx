@@ -364,9 +364,9 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
   // Layout: chat(~15dvh) + goteCaptured(~4dvh) + board + senteCaptured(~4dvh) + controls(~4dvh)
   // Available for board: 100dvh - 15 - 4 - 4 - 4 = ~73dvh, minus some padding
   // Board = min(~65dvh, 100vw - padding)
-  // Layout: chat + AI持ち駒(24px) + board + colNumbers(20px) + 自分持ち駒(28px) + controls(48px) = 100dvh
-  // Board = 60dvh, leaving ~100dvh - 60dvh - 120px for chat
-  const boardSize = 'min(60dvh, calc(100vw - 52px))';
+  // Layout: chat(auto) + AI持ち駒(24px) + board + colNumbers(20px) + 自分持ち駒(28px) + controls(48px)
+  // Board = 65dvh max, vw-limited on narrow screens
+  const boardSize = 'min(65dvh, calc(100vw - 52px))';
 
   return (
     <div
@@ -377,7 +377,7 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
       <div
         className="overflow-y-auto overflow-x-hidden flex-shrink"
         style={{
-          maxHeight: 'calc(100dvh - 60dvh - 120px)',
+          maxHeight: 'calc(100dvh - 65dvh - 120px)',
           background: 'rgba(255,255,255,0.3)',
           backdropFilter: 'blur(10px)',
           WebkitBackdropFilter: 'blur(10px)',
