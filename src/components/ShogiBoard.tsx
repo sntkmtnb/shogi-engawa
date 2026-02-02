@@ -12,11 +12,15 @@ import {
   isCheckmate, isStalemate, canPromoteMove, mustPromote,
 } from '@/lib/moves';
 import { getAIMove } from '@/lib/ai';
+import { getComment, shouldMumble } from '@/lib/comments';
+import ChatBubble, { BubbleMessage } from '@/components/ChatBubble';
 
 interface ShogiBoardProps {
   difficulty: Difficulty;
   onBack: () => void;
 }
+
+let bubbleIdCounter = 0;
 
 export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
   const [game, setGame] = useState<GameState>(createInitialGameState());
@@ -33,10 +37,26 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
   const [resigned, setResigned] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [showResignConfirm, setShowResignConfirm] = useState(false);
+  const [bubbles, setBubbles] = useState<BubbleMessage[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mumbleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const playerSide: Player = 'sente';
   const aiSide: Player = 'gote';
+
+  const addBubble = useCallback((text: string) => {
+    const id = ++bubbleIdCounter;
+    setBubbles(prev => [...prev.slice(-4), { id, text }]);
+  }, []);
+
+  // 対局開始時のコメント
+  useEffect(() => {
+    const t = setTimeout(() => {
+      addBubble(getComment('gameStart'));
+    }, 500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // 経過時間タイマー
   useEffect(() => {
@@ -52,8 +72,22 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
   useEffect(() => {
     if (game.status === 'checkmate' || game.status === 'stalemate' || resigned) {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (mumbleTimerRef.current) clearTimeout(mumbleTimerRef.current);
     }
   }, [game.status, resigned]);
+
+  // ランダム独り言タイマー
+  const scheduleMumble = useCallback(() => {
+    if (mumbleTimerRef.current) clearTimeout(mumbleTimerRef.current);
+    const delay = 8000 + Math.random() * 12000; // 8〜20秒
+    mumbleTimerRef.current = setTimeout(() => {
+      setBubbles(prev => {
+        // Only mumble if game is still going
+        return prev; // We check in the actual scheduling
+      });
+      addBubble(getComment('randomMumble'));
+    }, delay);
+  }, [addBubble]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -69,6 +103,10 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
     setThinking(true);
     setMessage('AIが考えています…🤔');
 
+    // 考え中コメント
+    addBubble(getComment('aiThinking'));
+
+    const thinkTime = 600 + Math.random() * 800;
     setTimeout(() => {
       const aiMove = getAIMove(currentGame.board, currentGame.captured, aiSide, difficulty);
       if (!aiMove) {
@@ -83,26 +121,39 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
       newGame.turn = playerSide;
       newGame.moveHistory.push(aiMove);
 
+      // AIが指した後のコメント
+      if (aiMove.promote) {
+        addBubble(getComment('promoteByAI'));
+      } else {
+        addBubble(getComment('aiMoved'));
+      }
+
       if (isCheckmate(newGame.board, newGame.captured, playerSide)) {
         newGame.status = 'checkmate';
         newGame.winner = aiSide;
         setMessage('残念…AIの勝ちです。もう一局いかがですか？');
+        setTimeout(() => addBubble(getComment('gameEndAIWins')), 500);
       } else if (isStalemate(newGame.board, newGame.captured, playerSide)) {
         newGame.status = 'stalemate';
         setMessage('引き分けです。いい勝負でした！');
       } else if (isInCheck(newGame.board, playerSide)) {
         newGame.status = 'check';
         setMessage('王手です！落ち着いて考えましょう');
+        setTimeout(() => addBubble(getComment('checkGiven')), 300);
       } else {
         newGame.status = 'playing';
         setMessage('あなたの番です。じっくりどうぞ');
+        // ランダム独り言チェック
+        if (shouldMumble(newGame.moveHistory.length)) {
+          setTimeout(() => addBubble(getComment('randomMumble')), 2000 + Math.random() * 3000);
+        }
       }
 
       setLastMove({ from: aiMove.from, to: aiMove.to });
       setGame(newGame);
       setThinking(false);
-    }, 300);
-  }, [aiSide, difficulty, playerSide]);
+    }, thinkTime);
+  }, [aiSide, difficulty, playerSide, addBubble]);
 
   // プレイヤーの手を処理
   const executePlayerMove = useCallback((move: Move, promote: boolean) => {
@@ -114,16 +165,40 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
     newGame.turn = aiSide;
     newGame.moveHistory.push(actualMove);
 
+    // プレイヤーの手に応じたコメント
+    if (promote) {
+      addBubble(getComment('promoteByPlayer'));
+    } else if (move.capture) {
+      addBubble(getComment('playerCapture'));
+    } else if (move.piece === 'rook' || move.piece === 'bishop' || move.piece === 'prook' || move.piece === 'pbishop') {
+      addBubble(getComment('playerBigPiece'));
+    } else if (move.piece === 'pawn') {
+      if (Math.random() < 0.4) {
+        addBubble(getComment('playerPawnPush'));
+      } else {
+        addBubble(getComment('playerMove'));
+      }
+    } else {
+      // たまに「良い手」コメント
+      if (Math.random() < 0.25) {
+        addBubble(getComment('playerMoveGood'));
+      } else {
+        addBubble(getComment('playerMove'));
+      }
+    }
+
     if (isCheckmate(newGame.board, newGame.captured, aiSide)) {
       newGame.status = 'checkmate';
       newGame.winner = playerSide;
       setMessage('おめでとうございます！見事な勝利です！🎉');
+      setTimeout(() => addBubble(getComment('gameEndPlayerWins')), 500);
     } else if (isStalemate(newGame.board, newGame.captured, aiSide)) {
       newGame.status = 'stalemate';
       setMessage('引き分けです。いい勝負でした！');
     } else if (isInCheck(newGame.board, aiSide)) {
       newGame.status = 'check';
       setMessage('王手！いい攻めですね！');
+      setTimeout(() => addBubble(getComment('checkReceived')), 300);
     } else {
       newGame.status = 'playing';
     }
@@ -138,7 +213,7 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
     if (newGame.status === 'playing' || newGame.status === 'check') {
       setTimeout(() => doAITurn(newGame), 100);
     }
-  }, [game, playerSide, aiSide, doAITurn]);
+  }, [game, playerSide, aiSide, doAITurn, addBubble]);
 
   // セルクリック
   const handleCellClick = useCallback((row: number, col: number) => {
@@ -219,7 +294,7 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
       );
       setLegalMoves(filtered);
     }
-  }, [thinking, game, playerSide, selected, selectedDrop, legalMoves, executePlayerMove]);
+  }, [thinking, game, playerSide, selected, selectedDrop, legalMoves, executePlayerMove, resigned]);
 
   // 持ち駒クリック
   const handleCapturedClick = useCallback((pieceType: PieceType) => {
@@ -233,7 +308,7 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
     const allLegal = getAllLegalMoves(game.board, game.captured, playerSide);
     const dropMoves = allLegal.filter(m => !m.from && m.dropPiece === pieceType);
     setLegalMoves(dropMoves.map(m => m.to));
-  }, [thinking, game, playerSide]);
+  }, [thinking, game, playerSide, resigned]);
 
   // 投了
   const handleResign = () => {
@@ -243,6 +318,7 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
     setSelected(null);
     setSelectedDrop(null);
     setLegalMoves([]);
+    addBubble(getComment('gameEndAIWins'));
   };
 
   // リセット
@@ -258,10 +334,14 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
     setElapsedSeconds(0);
     setResigned(false);
     setShowResignConfirm(false);
+    setBubbles([]);
     if (timerRef.current) clearInterval(timerRef.current);
+    if (mumbleTimerRef.current) clearTimeout(mumbleTimerRef.current);
     timerRef.current = setInterval(() => {
       setElapsedSeconds(prev => prev + 1);
     }, 1000);
+    // 新しい対局の開始コメント
+    setTimeout(() => addBubble(getComment('gameStart')), 500);
   };
 
   const getKanjiDisplay = (type: AnyPieceType, owner: Player): string => {
@@ -277,7 +357,7 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
 
   const capturedPieceTypes: PieceType[] = ['rook', 'bishop', 'gold', 'silver', 'knight', 'lance', 'pawn'];
 
-  // 星印の位置 (row, col) — 3三(2,6), 6六(5,3), 3六(5,6), 6三(2,3)
+  // 星印の位置
   const starPositions = [
     { row: 2, col: 6 },
     { row: 5, col: 3 },
@@ -317,6 +397,9 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
           ⏱ {formatTime(elapsedSeconds)}
         </span>
       </div>
+
+      {/* 源さんの吹き出し */}
+      <ChatBubble messages={bubbles} />
 
       {/* メッセージ */}
       <div className={`text-center text-xl md:text-2xl font-bold mb-3 py-3 rounded-xl ${
@@ -394,7 +477,7 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
                       <div
                         key={`${r}-${c}`}
                         className={`
-                          border border-amber-900/40 flex items-center justify-center relative
+                          border border-amber-900/40 flex items-center justify-center relative aspect-square
                           ${isLegal ? 'cell-highlight' : ''}
                           ${isLastMove ? 'cell-last-move' : ''}
                         `}
