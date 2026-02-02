@@ -97,7 +97,7 @@ export default function Home() {
 
       {/* 縁台の人の気配 */}
       {mounted && (
-        <div className="absolute bottom-20 left-0 right-0 text-center space-y-1 pb-[env(safe-area-inset-bottom,0px)]">
+        <div className="fixed bottom-16 left-0 right-0 text-center space-y-1 pb-[env(safe-area-inset-bottom,0px)]" style={{ zIndex: 41 }}>
           <p className="text-xs text-amber-500/70 font-medium">
             🏮 今日 {todayPlayers}人が源さんと一局指しました
           </p>

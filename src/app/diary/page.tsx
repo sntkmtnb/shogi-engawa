@@ -1,6 +1,41 @@
-import { diaryEntries } from '@/data/diary';
+'use client';
+
+import { diaryEntries, DiaryEntry } from '@/data/diary';
+import { useMemo } from 'react';
+
+function formatDate(mmdd: string): string {
+  const [mm, dd] = mmdd.split('-').map(Number);
+  return `${mm}月${dd}日`;
+}
+
+function getSortedEntries(): DiaryEntry[] {
+  const now = new Date();
+  const currentMM = String(now.getMonth() + 1).padStart(2, '0');
+  const currentDD = String(now.getDate()).padStart(2, '0');
+  const todayKey = `${currentMM}-${currentDD}`;
+
+  // Sort by proximity to today (circular, wrapping around year)
+  return [...diaryEntries].sort((a, b) => {
+    const distA = dateDist(todayKey, a.date);
+    const distB = dateDist(todayKey, b.date);
+    return distA - distB;
+  });
+}
+
+function dateDist(today: string, entry: string): number {
+  const [tm, td] = today.split('-').map(Number);
+  const [em, ed] = entry.split('-').map(Number);
+  const todayDay = tm * 31 + td;
+  const entryDay = em * 31 + ed;
+  const diff = todayDay - entryDay;
+  // Prefer recent past entries, then future
+  if (diff >= 0) return diff;
+  return 366 + diff; // wrap around
+}
 
 export default function DiaryPage() {
+  const sorted = useMemo(() => getSortedEntries(), []);
+
   return (
     <div className="max-w-lg mx-auto px-4 pt-8 pb-8">
       {/* Header */}
@@ -15,7 +50,7 @@ export default function DiaryPage() {
 
       {/* Diary entries */}
       <div className="flex flex-col gap-4">
-        {diaryEntries.map((entry, i) => (
+        {sorted.map((entry, i) => (
           <article
             key={i}
             className="ios-card p-5 relative"
@@ -32,7 +67,7 @@ export default function DiaryPage() {
               </div>
               <div>
                 <p className="text-xs text-amber-500 font-bold">
-                  {entry.date}
+                  {formatDate(entry.date)}
                 </p>
                 <h2 className="text-base font-bold text-amber-900 leading-tight">
                   {entry.title}
