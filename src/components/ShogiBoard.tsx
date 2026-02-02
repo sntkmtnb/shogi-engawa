@@ -370,8 +370,9 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
 
   return (
     <div
-      className="no-scroll select-none flex flex-col justify-start"
-      style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden' }}
+      className="no-scroll select-none flex flex-col fixed inset-0 z-50"
+      style={{ height: '100dvh', overflow: 'hidden', background: 'linear-gradient(180deg, #FFF8F0 0%, #FFF0E0 100%)' }}
+      data-game-active="true"
     >
       {/* Chat area - takes remaining space above board */}
       <div
