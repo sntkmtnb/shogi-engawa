@@ -535,7 +535,7 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
       </div>
 
       {/* Control bar - bottom, compact icons */}
-      <div className="flex-shrink-0 flex items-center justify-center gap-8 px-4 py-1 pb-[calc(4px+env(safe-area-inset-bottom,0px))]">
+      <div className="flex-shrink-0 flex items-center justify-center gap-8 px-4 py-1">
         <button
           onClick={onBack}
           className="text-amber-700/60 hover:text-amber-800 text-lg active:scale-90 transition-all p-1.5"
@@ -558,6 +558,17 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
           >
             🏳️
           </button>
+        )}
+      </div>
+
+      {/* 源さんの最新コメント - 下部に大きく表示 */}
+      <div className="flex-1 flex items-center justify-center px-4 pb-[calc(4px+env(safe-area-inset-bottom,0px))]">
+        {chatMessages.length > 0 && (
+          <div className="text-center">
+            <p className="text-base text-amber-800 font-medium leading-relaxed opacity-80">
+              「{chatMessages[chatMessages.length - 1].text}」
+            </p>
+          </div>
         )}
       </div>
 

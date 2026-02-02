@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 const tabs = [
   { href: '/play', label: '対局', emoji: '♟️' },
   { href: '/tsume', label: '詰将棋', emoji: '🧩' },
+  { href: '/diary', label: '日記', emoji: '📔' },
   { href: '/', label: '縁台', emoji: '🏠', exact: true },
 ];
 

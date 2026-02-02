@@ -388,7 +388,10 @@ body {
   overflow: hidden !important;
   display: flex !important;
   flex-direction: column !important;
-  background: linear-gradient(180deg, #FFF8F0 0%, #FFF0E0 100%) !important;
+  background: 
+    radial-gradient(ellipse at 30% 20%, rgba(255,220,180,0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 80%, rgba(200,180,150,0.1) 0%, transparent 50%),
+    linear-gradient(180deg, #FFF8F0 0%, #FFF0E0 100%) !important;
 }
 
 /* Bottom padding for tab bar (non-game pages) */
