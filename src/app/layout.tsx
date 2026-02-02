@@ -5,7 +5,7 @@ import BottomTabBar from '@/components/BottomTabBar';
 import GameAwareLayout from '@/components/GameAwareLayout';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://shogi.because-why-not.com'),
+  metadataBase: new URL('https://shogi-engawa.com'),
   title: '将棋の縁台 | 50歳からの将棋サロン',
   description: '源さんと会話しながら将棋を楽しむ。50歳以上のためのあたたかい将棋サロン。登録不要・無料。',
   manifest: '/manifest.json',
