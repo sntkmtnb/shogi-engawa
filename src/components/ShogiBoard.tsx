@@ -364,19 +364,22 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
   // Layout: chat(~15dvh) + goteCaptured(~4dvh) + board + senteCaptured(~4dvh) + controls(~4dvh)
   // Available for board: 100dvh - 15 - 4 - 4 - 4 = ~73dvh, minus some padding
   // Board = min(~65dvh, 100vw - padding)
-  const boardSize = 'min(calc(100dvh - 200px), calc(100vw - 16px))';
+  // Board needs to leave room for: chat(~56px) + goteCaptured(~24px) + senteCaptured(~28px) + controls(~36px) + colNumbers(~24px) + padding(~16px) = ~184px
+  // Also leave space for row labels on the right (~24px)
+  const boardSize = 'min(calc(100dvh - 184px), calc(100vw - 48px))';
 
   return (
     <div
       className="no-scroll select-none flex flex-col"
       style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden' }}
     >
-      {/* Chat area - top, compact */}
+      {/* Chat area - top, compact, no wasted space */}
       <div
-        className="flex-shrink-0"
+        className="flex-shrink-0 overflow-hidden"
         style={{
+          height: chatMessages.length > 0 ? 'auto' : '28px',
           maxHeight: '15dvh',
-          minHeight: '56px',
+          minHeight: '28px',
           background: 'rgba(255,255,255,0.3)',
           backdropFilter: 'blur(10px)',
           WebkitBackdropFilter: 'blur(10px)',
@@ -414,9 +417,9 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
       <div className="flex-1 flex items-center justify-center min-h-0 px-1">
         <div className="relative">
           {/* Column numbers */}
-          <div className="flex ml-5 mr-3" style={{ width: boardSize }}>
+          <div className="flex" style={{ width: boardSize, marginLeft: '0', paddingRight: '0' }}>
             {colNumbers.map((n, i) => (
-              <div key={i} className="flex-1 text-center text-base md:text-lg text-amber-900 font-bold" style={{ background: 'rgba(222,184,135,0.3)', borderRadius: '2px' }}>
+              <div key={i} className="flex-1 text-center text-sm text-amber-800 font-bold leading-tight">
                 {n}
               </div>
             ))}
@@ -493,12 +496,11 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
             </div>
 
             {/* Row labels */}
-            <div className="flex flex-col ml-1 mr-2" style={{ height: boardSize }}>
+            <div className="flex flex-col ml-0.5" style={{ height: boardSize, width: '20px' }}>
               {rowLabels.map((label, i) => (
                 <div
                   key={i}
-                  className="flex-1 flex items-center text-base md:text-lg text-amber-900 font-bold"
-                  style={{ background: 'rgba(222,184,135,0.3)', borderRadius: '2px' }}
+                  className="flex-1 flex items-center justify-center text-sm text-amber-800 font-bold"
                 >
                   {label}
                 </div>
