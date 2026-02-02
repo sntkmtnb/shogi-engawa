@@ -14,6 +14,7 @@ import {
 import { getAIMove } from '@/lib/ai';
 import { getComment, shouldMumble, getTimeBasedGreeting, getReviewComments, getMoveCountComment, getFlowComment, CommentType } from '@/lib/comments';
 import { playKomaSound, playCheckSound } from '@/lib/sound';
+import { recordGame, getStats, getWinRate } from '@/lib/stats';
 import ChatArea, { ChatMessage } from '@/components/ChatArea';
 
 interface ShogiBoardProps {
@@ -47,6 +48,8 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
   const [visibleReviewCount, setVisibleReviewCount] = useState(0);
   const [undoCount, setUndoCount] = useState(0);
   const [hintUsed, setHintUsed] = useState(false);
+  const [hintCount, setHintCount] = useState(0);
+  const [gameRecorded, setGameRecorded] = useState(false);
   const mumbleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const MAX_UNDO = 3;
@@ -260,6 +263,7 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
       }
       addChat(getComment('hint'));
       setHintUsed(true);
+      setHintCount(prev => prev + 1);
     }
   }, [thinking, game, playerSide, resigned, hintUsed, addChat]);
 
@@ -429,6 +433,8 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
     setChatMessages([]);
     setUndoCount(0);
     setHintUsed(false);
+    setHintCount(0);
+    setGameRecorded(false);
     if (mumbleTimerRef.current) clearTimeout(mumbleTimerRef.current);
     setTimeout(() => addChat(getTimeBasedGreeting()), 500);
   };
@@ -451,6 +457,20 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
   ];
 
   const isGameOver = game.status === 'checkmate' || game.status === 'stalemate' || resigned;
+
+  // Record game when game over popup shows
+  useEffect(() => {
+    if (showGameOver && gameOverInfo && !gameRecorded) {
+      recordGame(
+        gameOverInfo.result,
+        difficulty,
+        game.moveHistory.length,
+        hintCount,
+        undoCount
+      );
+      setGameRecorded(true);
+    }
+  }, [showGameOver, gameOverInfo, gameRecorded, difficulty, game.moveHistory.length, hintCount, undoCount]);
 
   // Board size: calculated from CSS using dvh
   // Layout: chat(~15dvh) + goteCaptured(~4dvh) + board + senteCaptured(~4dvh) + controls(~4dvh)
@@ -730,11 +750,31 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
                   </>
                 )}
 
+                {/* Stats summary */}
+                {(() => {
+                  const stats = getStats();
+                  const winRate = getWinRate(stats);
+                  return (
+                    <div className="text-sm text-amber-700 mt-2 mb-1 space-y-0.5">
+                      <p className="font-bold">通算 {stats.wins}勝 {stats.losses}敗{stats.draws > 0 ? ` ${stats.draws}分` : ''}（勝率 {winRate}%）</p>
+                      {stats.currentStreak >= 2 && (
+                        <p className="text-amber-600">🔥 {stats.currentStreak}連勝中！</p>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 {/* Gen-san's comment */}
                 <div className="flex items-start gap-2 mt-3 mb-5 text-left bg-amber-50/60 rounded-xl p-3">
                   <div className="chat-avatar flex-shrink-0">源</div>
                   <p className="text-sm text-amber-800 font-medium leading-relaxed">
                     {gameOverInfo.comment}
+                    {(() => {
+                      const stats = getStats();
+                      if (stats.wins === 10) return ' お前さん、もう10勝目やで！強なったなぁ';
+                      if (stats.currentStreak >= 5) return ` ${stats.currentStreak}連勝とは…ワシも負けてられへんな`;
+                      return '';
+                    })()}
                   </p>
                 </div>
 

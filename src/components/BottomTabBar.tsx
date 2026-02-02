@@ -7,6 +7,7 @@ const tabs = [
   { href: '/play', label: '対局', emoji: '♟️' },
   { href: '/tsume', label: '詰将棋', emoji: '🧩' },
   { href: '/diary', label: '日記', emoji: '📔' },
+  { href: '/profile', label: '記録', emoji: '📊' },
   { href: '/', label: '縁台', emoji: '🏠', exact: true },
 ];
 
@@ -22,7 +23,7 @@ export default function BottomTabBar() {
             <Link
               key={tab.href}
               href={tab.href}
-              className={`flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-2xl transition-all ${
+              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-2xl transition-all ${
                 isActive
                   ? 'text-amber-800 bg-amber-100/80'
                   : 'text-amber-600/60 hover:text-amber-700'
