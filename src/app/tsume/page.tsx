@@ -70,9 +70,9 @@ export default function TsumePage() {
           <div className="space-y-4 max-w-md mx-auto">
             <button
               onClick={() => handleSelectDifficulty('beginner')}
-              className="w-full btn-ios bg-gradient-to-r from-green-600 to-green-700 text-white text-xl md:text-2xl font-bold py-5 px-8 shadow-lg active:scale-97"
+              className="w-full btn-ios bg-gradient-to-r from-amber-500 to-amber-600 text-white text-xl md:text-2xl font-bold py-5 px-8 shadow-lg active:scale-97"
             >
-              🌱 やさしい（一手詰め）
+              初級 — やさしい（一手詰め）
               <span className="block text-sm mt-1 font-normal opacity-80">
                 将棋の基本を確認しよう（{TSUME_PROBLEMS.filter(p => p.difficulty === 'beginner').length}問）
               </span>
@@ -82,7 +82,7 @@ export default function TsumePage() {
               onClick={() => handleSelectDifficulty('intermediate')}
               className="w-full btn-ios bg-gradient-to-r from-amber-600 to-amber-700 text-white text-xl md:text-2xl font-bold py-5 px-8 shadow-lg active:scale-97"
             >
-              ⚔️ ふつう（三手詰め）
+              中級 — ふつう（三手詰め）
               <span className="block text-sm mt-1 font-normal opacity-80">
                 少し先を読んでみよう（{TSUME_PROBLEMS.filter(p => p.difficulty === 'intermediate').length}問）
               </span>
@@ -90,9 +90,9 @@ export default function TsumePage() {
 
             <button
               onClick={() => handleSelectDifficulty('advanced')}
-              className="w-full btn-ios bg-gradient-to-r from-red-700 to-red-800 text-white text-xl md:text-2xl font-bold py-5 px-8 shadow-lg active:scale-97"
+              className="w-full btn-ios bg-gradient-to-r from-amber-700 to-amber-800 text-white text-xl md:text-2xl font-bold py-5 px-8 shadow-lg active:scale-97"
             >
-              🔥 むずかしい（五〜七手詰め）
+              上級 — むずかしい（五〜七手詰め）
               <span className="block text-sm mt-1 font-normal opacity-80">
                 上級者への道（{TSUME_PROBLEMS.filter(p => p.difficulty === 'advanced').length}問）
               </span>
@@ -133,14 +133,14 @@ export default function TsumePage() {
           <div className="mb-6 text-center">
             <span className={`inline-block text-base font-bold px-5 py-2 rounded-full ${
               selectedDifficulty === 'beginner'
-                ? 'bg-green-100/80 text-green-800'
+                ? 'bg-amber-100/80 text-amber-700'
                 : selectedDifficulty === 'intermediate'
                   ? 'bg-amber-100/80 text-amber-800'
-                  : 'bg-red-100/80 text-red-800'
+                  : 'bg-amber-200/80 text-amber-900'
             }`}>
-              {selectedDifficulty === 'beginner' && '🌱 やさしい（一手詰め）'}
-              {selectedDifficulty === 'intermediate' && '⚔️ ふつう（三手詰め）'}
-              {selectedDifficulty === 'advanced' && '🔥 むずかしい（五〜七手詰め）'}
+              {selectedDifficulty === 'beginner' && '初級 — やさしい（一手詰め）'}
+              {selectedDifficulty === 'intermediate' && '中級 — ふつう（三手詰め）'}
+              {selectedDifficulty === 'advanced' && '上級 — むずかしい（五〜七手詰め）'}
             </span>
           </div>
 
@@ -160,8 +160,11 @@ export default function TsumePage() {
                       {problem.description}
                     </p>
                   </div>
-                  <div className="text-amber-400 text-xl ml-3 flex-shrink-0">
-                    ▶
+                  <div className="flex items-center gap-2 ml-3 flex-shrink-0">
+                    <span className="text-xs font-bold bg-amber-100/80 text-amber-700 px-2 py-1 rounded-full">
+                      {problem.moves}手
+                    </span>
+                    <span className="text-amber-400 text-xl">▶</span>
                   </div>
                 </div>
               </button>

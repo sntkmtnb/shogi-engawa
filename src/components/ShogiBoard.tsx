@@ -337,19 +337,19 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
   // Layout: chat(~15dvh) + goteCaptured(~4dvh) + board + senteCaptured(~4dvh) + controls(~4dvh)
   // Available for board: 100dvh - 15 - 4 - 4 - 4 = ~73dvh, minus some padding
   // Board = min(~65dvh, 100vw - padding)
-  const boardSize = 'min(62dvh, calc(100vw - 16px))';
+  const boardSize = 'min(66dvh, calc(100vw - 16px))';
 
   return (
     <div
       className="no-scroll select-none flex flex-col"
       style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden' }}
     >
-      {/* Chat area - top ~18% */}
+      {/* Chat area - top, compact */}
       <div
         className="flex-shrink-0"
         style={{
-          height: '15dvh',
-          minHeight: '80px',
+          maxHeight: '15dvh',
+          minHeight: '56px',
           background: 'rgba(255,255,255,0.3)',
           backdropFilter: 'blur(10px)',
           WebkitBackdropFilter: 'blur(10px)',
@@ -360,8 +360,8 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
       </div>
 
       {/* AI captured pieces */}
-      <div className="flex-shrink-0 px-2 py-1">
-        <div className="flex items-center gap-1 min-h-[24px]">
+      <div className="flex-shrink-0 px-2 py-0.5">
+        <div className="flex items-center gap-1 min-h-[20px]">
           <span className="text-[10px] text-amber-600 font-bold whitespace-nowrap">△AI</span>
           <div className="flex flex-wrap gap-0.5">
             {capturedPieceTypes.map(pt => {
@@ -389,7 +389,7 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
           {/* Column numbers */}
           <div className="flex ml-5 mr-3" style={{ width: boardSize }}>
             {colNumbers.map((n, i) => (
-              <div key={i} className="flex-1 text-center text-[10px] text-amber-600 font-bold">
+              <div key={i} className="flex-1 text-center text-sm md:text-base text-amber-800 font-bold">
                 {n}
               </div>
             ))}
@@ -446,14 +446,17 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
                                 text-amber-950 font-bold leading-none
                                 ${isPromoted(cell.type) ? 'text-red-700' : ''}
                               `}
-                              style={{ fontSize: `calc(${boardSize} / 9 * 0.45)` }}
+                              style={{ fontSize: `calc(${boardSize} / 9 * 0.5)` }}
                             >
                               {getKanjiDisplay(cell.type, cell.owner)}
                             </span>
                           </div>
                         )}
                         {isLegal && !cell && (
-                          <div className="w-2.5 h-2.5 rounded-full bg-green-500/40" />
+                          <div className="w-4 h-4 md:w-5 md:h-5 rounded-full bg-green-500/50 border border-green-600/30" />
+                        )}
+                        {isLegal && cell && (
+                          <div className="absolute inset-0 bg-red-400/30 pointer-events-none" />
                         )}
                       </div>
                     );
@@ -467,7 +470,7 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
               {rowLabels.map((label, i) => (
                 <div
                   key={i}
-                  className="flex-1 flex items-center text-[10px] text-amber-600 font-bold"
+                  className="flex-1 flex items-center text-sm md:text-base text-amber-800 font-bold"
                 >
                   {label}
                 </div>
@@ -478,8 +481,8 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
       </div>
 
       {/* Player captured pieces */}
-      <div className="flex-shrink-0 px-2 py-1">
-        <div className="flex items-center gap-1 min-h-[28px]">
+      <div className="flex-shrink-0 px-2 py-0.5">
+        <div className="flex items-center gap-1 min-h-[24px]">
           <span className="text-[10px] text-amber-600 font-bold whitespace-nowrap">▲自分</span>
           <div className="flex flex-wrap gap-0.5">
             {capturedPieceTypes.map(pt => {
@@ -504,7 +507,7 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
       </div>
 
       {/* Control bar - bottom, compact icons */}
-      <div className="flex-shrink-0 flex items-center justify-center gap-6 px-4 py-1.5 pb-[calc(6px+env(safe-area-inset-bottom,0px))]">
+      <div className="flex-shrink-0 flex items-center justify-center gap-8 px-4 py-1 pb-[calc(4px+env(safe-area-inset-bottom,0px))]">
         <button
           onClick={onBack}
           className="text-amber-700/60 hover:text-amber-800 text-lg active:scale-90 transition-all p-1.5"

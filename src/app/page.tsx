@@ -54,7 +54,7 @@ export default function Home() {
             <h3 className="text-lg font-bold text-amber-900 mb-2">
               ちょうどいい対戦相手
             </h3>
-            <p className="text-sm text-amber-700 leading-relaxed">
+            <p className="text-base text-amber-700 leading-relaxed">
               AIが棋力に合わせて調整。強すぎず弱すぎず、ちょうどいい勝負が楽しめます。
             </p>
           </div>
@@ -67,7 +67,7 @@ export default function Home() {
             <h3 className="text-lg font-bold text-amber-900 mb-2">
               同世代の仲間
             </h3>
-            <p className="text-sm text-amber-700 leading-relaxed">
+            <p className="text-base text-amber-700 leading-relaxed">
               50歳以上限定のコミュニティ。同じ世代だから、気兼ねなく楽しめます。
             </p>
           </div>
@@ -77,7 +77,7 @@ export default function Home() {
             <h3 className="text-lg font-bold text-amber-900 mb-2">
               脳の健康維持
             </h3>
-            <p className="text-sm text-amber-700 leading-relaxed">
+            <p className="text-base text-amber-700 leading-relaxed">
               将棋は最高の脳トレ。先を読む力、集中力、判断力を毎日の対局で鍛えましょう。
             </p>
           </div>
@@ -96,7 +96,7 @@ export default function Home() {
             { text: '定年後に将棋を再開。「やさしい」から始めて今は「ふつう」で楽しんでます。', name: '山本さん（67歳）', sub: '福岡県', initial: '山' },
           ].map((t, i) => (
             <div key={i} className="testimonial-card ios-card p-5">
-              <p className="text-sm text-amber-800 leading-relaxed mb-4 pl-4">
+              <p className="text-base text-amber-800 leading-relaxed mb-4 pl-4">
                 {t.text}
               </p>
               <div className="flex items-center gap-3 border-t border-amber-100/60 pt-3">
