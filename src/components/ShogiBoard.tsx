@@ -373,10 +373,12 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
       className="game-fullscreen no-scroll select-none"
       data-game-active="true"
     >
-      {/* Chat area - takes remaining space above board */}
+      {/* Chat area - fixed height, scrollable */}
       <div
-        className="flex-1 min-h-0 overflow-hidden"
+        className="overflow-hidden"
         style={{
+          height: 'calc(100dvh - 50dvh - 110px)',
+          minHeight: '60px',
           background: 'rgba(255,255,255,0.3)',
           backdropFilter: 'blur(10px)',
           WebkitBackdropFilter: 'blur(10px)',
