@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import Link from 'next/link';
 import './globals.css';
 import BottomTabBar from '@/components/BottomTabBar';
+import GameAwareLayout from '@/components/GameAwareLayout';
 
 export const metadata: Metadata = {
   title: '将棋の縁台 | 50歳からの将棋サロン',
@@ -42,21 +43,9 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body className="min-h-screen min-h-dvh flex flex-col">
-        {/* Frosted glass header */}
-        <header className="glass-header sticky top-0 z-30 text-amber-100">
-          <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-center">
-            <Link href="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
-              <span className="text-xl md:text-2xl font-bold tracking-wider">
-                ▲ 将棋の縁台
-              </span>
-            </Link>
-          </div>
-        </header>
-
-        <main className="flex-1 main-content">{children}</main>
-
-        {/* iOS-style bottom tab bar */}
-        <BottomTabBar />
+        <GameAwareLayout>
+          {children}
+        </GameAwareLayout>
       </body>
     </html>
   );

@@ -13,14 +13,14 @@ import {
 } from '@/lib/moves';
 import { getAIMove } from '@/lib/ai';
 import { getComment, shouldMumble } from '@/lib/comments';
-import ChatBubble, { BubbleMessage } from '@/components/ChatBubble';
+import ChatArea, { ChatMessage } from '@/components/ChatArea';
 
 interface ShogiBoardProps {
   difficulty: Difficulty;
   onBack: () => void;
 }
 
-let bubbleIdCounter = 0;
+let chatIdCounter = 0;
 
 export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
   const [game, setGame] = useState<GameState>(createInitialGameState());
@@ -33,73 +33,50 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
     callback: (promote: boolean) => void;
   } | null>(null);
   const [thinking, setThinking] = useState(false);
-  const [message, setMessage] = useState<string>('あなたの番です');
   const [resigned, setResigned] = useState(false);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [showResignConfirm, setShowResignConfirm] = useState(false);
-  const [bubbles, setBubbles] = useState<BubbleMessage[]>([]);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [showGameOver, setShowGameOver] = useState(false);
+  const [gameOverInfo, setGameOverInfo] = useState<{
+    result: 'win' | 'lose' | 'draw';
+    comment: string;
+  } | null>(null);
   const mumbleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const playerSide: Player = 'sente';
   const aiSide: Player = 'gote';
 
-  const addBubble = useCallback((text: string) => {
-    const id = ++bubbleIdCounter;
-    setBubbles(prev => [...prev.slice(-4), { id, text }]);
+  const addChat = useCallback((text: string) => {
+    const id = ++chatIdCounter;
+    setChatMessages(prev => {
+      const next = [...prev, { id, text, timestamp: Date.now() }];
+      // Keep max 50 messages
+      if (next.length > 50) return next.slice(-50);
+      return next;
+    });
   }, []);
 
-  // 対局開始時のコメント
+  // Opening comment
   useEffect(() => {
-    const t = setTimeout(() => {
-      addBubble(getComment('gameStart'));
-    }, 500);
+    const t = setTimeout(() => addChat(getComment('gameStart')), 500);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 経過時間タイマー
-  useEffect(() => {
-    timerRef.current = setInterval(() => {
-      setElapsedSeconds(prev => prev + 1);
-    }, 1000);
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, []);
-
-  // 対局終了時にタイマー停止
+  // Stop mumble timer on game end
   useEffect(() => {
     if (game.status === 'checkmate' || game.status === 'stalemate' || resigned) {
-      if (timerRef.current) clearInterval(timerRef.current);
       if (mumbleTimerRef.current) clearTimeout(mumbleTimerRef.current);
     }
   }, [game.status, resigned]);
 
-  // ランダム独り言タイマー
-  const scheduleMumble = useCallback(() => {
-    if (mumbleTimerRef.current) clearTimeout(mumbleTimerRef.current);
-    const delay = 8000 + Math.random() * 12000;
-    mumbleTimerRef.current = setTimeout(() => {
-      setBubbles(prev => prev);
-      addBubble(getComment('randomMumble'));
-    }, delay);
-  }, [addBubble]);
-
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
-  };
-
-  // AI の手番処理
+  // AI turn
   const doAITurn = useCallback((currentGame: GameState) => {
     if (currentGame.status !== 'playing' && currentGame.status !== 'check') return;
     if (currentGame.turn !== aiSide) return;
 
     setThinking(true);
-    setMessage('AIが考えています…🤔');
-    addBubble(getComment('aiThinking'));
+    addChat(getComment('aiThinking'));
 
     const thinkTime = 600 + Math.random() * 800;
     setTimeout(() => {
@@ -117,28 +94,31 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
       newGame.moveHistory.push(aiMove);
 
       if (aiMove.promote) {
-        addBubble(getComment('promoteByAI'));
+        addChat(getComment('promoteByAI'));
       } else {
-        addBubble(getComment('aiMoved'));
+        addChat(getComment('aiMoved'));
       }
 
       if (isCheckmate(newGame.board, newGame.captured, playerSide)) {
         newGame.status = 'checkmate';
         newGame.winner = aiSide;
-        setMessage('残念…AIの勝ちです。もう一局いかがですか？');
-        setTimeout(() => addBubble(getComment('gameEndAIWins')), 500);
+        setTimeout(() => {
+          const comment = getComment('gameEndAIWins');
+          addChat(comment);
+          setGameOverInfo({ result: 'lose', comment });
+          setShowGameOver(true);
+        }, 500);
       } else if (isStalemate(newGame.board, newGame.captured, playerSide)) {
         newGame.status = 'stalemate';
-        setMessage('引き分けです。いい勝負でした！');
+        setGameOverInfo({ result: 'draw', comment: 'いい勝負やったなぁ！' });
+        setShowGameOver(true);
       } else if (isInCheck(newGame.board, playerSide)) {
         newGame.status = 'check';
-        setMessage('王手です！落ち着いて考えましょう');
-        setTimeout(() => addBubble(getComment('checkGiven')), 300);
+        setTimeout(() => addChat(getComment('checkGiven')), 300);
       } else {
         newGame.status = 'playing';
-        setMessage('あなたの番です。じっくりどうぞ');
         if (shouldMumble(newGame.moveHistory.length)) {
-          setTimeout(() => addBubble(getComment('randomMumble')), 2000 + Math.random() * 3000);
+          setTimeout(() => addChat(getComment('randomMumble')), 2000 + Math.random() * 3000);
         }
       }
 
@@ -146,9 +126,9 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
       setGame(newGame);
       setThinking(false);
     }, thinkTime);
-  }, [aiSide, difficulty, playerSide, addBubble]);
+  }, [aiSide, difficulty, playerSide, addChat]);
 
-  // プレイヤーの手を処理
+  // Player move
   const executePlayerMove = useCallback((move: Move, promote: boolean) => {
     const actualMove = { ...move, promote };
     const result = applyMove(game.board, game.captured, actualMove, playerSide);
@@ -159,39 +139,41 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
     newGame.moveHistory.push(actualMove);
 
     if (promote) {
-      addBubble(getComment('promoteByPlayer'));
+      addChat(getComment('promoteByPlayer'));
     } else if (move.capture) {
-      addBubble(getComment('playerCapture'));
+      addChat(getComment('playerCapture'));
     } else if (move.piece === 'rook' || move.piece === 'bishop' || move.piece === 'prook' || move.piece === 'pbishop') {
-      addBubble(getComment('playerBigPiece'));
+      addChat(getComment('playerBigPiece'));
     } else if (move.piece === 'pawn') {
       if (Math.random() < 0.4) {
-        addBubble(getComment('playerPawnPush'));
+        addChat(getComment('playerPawnPush'));
       } else {
-        addBubble(getComment('playerMove'));
+        addChat(getComment('playerMove'));
       }
     } else {
       if (Math.random() < 0.25) {
-        addBubble(getComment('playerMoveGood'));
+        addChat(getComment('playerMoveGood'));
       } else {
-        addBubble(getComment('playerMove'));
+        addChat(getComment('playerMove'));
       }
     }
 
     if (isCheckmate(newGame.board, newGame.captured, aiSide)) {
       newGame.status = 'checkmate';
       newGame.winner = playerSide;
-      setMessage('おめでとうございます！見事な勝利です！🎉');
-      setTimeout(() => addBubble(getComment('gameEndPlayerWins')), 500);
+      setTimeout(() => {
+        const comment = getComment('gameEndPlayerWins');
+        addChat(comment);
+        setGameOverInfo({ result: 'win', comment });
+        setShowGameOver(true);
+      }, 500);
     } else if (isStalemate(newGame.board, newGame.captured, aiSide)) {
       newGame.status = 'stalemate';
-      setMessage('引き分けです。いい勝負でした！');
+      setGameOverInfo({ result: 'draw', comment: 'いい勝負やったなぁ！' });
+      setShowGameOver(true);
     } else if (isInCheck(newGame.board, aiSide)) {
       newGame.status = 'check';
-      setMessage('王手！いい攻めですね！');
-      setTimeout(() => addBubble(getComment('checkReceived')), 300);
-    } else {
-      newGame.status = 'playing';
+      setTimeout(() => addChat(getComment('checkReceived')), 300);
     }
 
     setLastMove({ from: move.from, to: move.to });
@@ -204,9 +186,9 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
     if (newGame.status === 'playing' || newGame.status === 'check') {
       setTimeout(() => doAITurn(newGame), 100);
     }
-  }, [game, playerSide, aiSide, doAITurn, addBubble]);
+  }, [game, playerSide, aiSide, doAITurn, addChat]);
 
-  // セルクリック
+  // Cell click
   const handleCellClick = useCallback((row: number, col: number) => {
     if (thinking) return;
     if (game.turn !== playerSide) return;
@@ -287,7 +269,7 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
     }
   }, [thinking, game, playerSide, selected, selectedDrop, legalMoves, executePlayerMove, resigned]);
 
-  // 持ち駒クリック
+  // Captured piece click
   const handleCapturedClick = useCallback((pieceType: PieceType) => {
     if (thinking) return;
     if (game.turn !== playerSide) return;
@@ -301,18 +283,20 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
     setLegalMoves(dropMoves.map(m => m.to));
   }, [thinking, game, playerSide, resigned]);
 
-  // 投了
+  // Resign
   const handleResign = () => {
     setResigned(true);
-    setMessage('投了しました。お疲れさまでした。');
     setShowResignConfirm(false);
     setSelected(null);
     setSelectedDrop(null);
     setLegalMoves([]);
-    addBubble(getComment('gameEndAIWins'));
+    const comment = getComment('gameEndAIWins');
+    addChat(comment);
+    setGameOverInfo({ result: 'lose', comment });
+    setShowGameOver(true);
   };
 
-  // リセット
+  // Reset
   const handleReset = () => {
     setGame(createInitialGameState());
     setSelected(null);
@@ -321,26 +305,19 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
     setLastMove(null);
     setShowPromote(null);
     setThinking(false);
-    setMessage('あなたの番です');
-    setElapsedSeconds(0);
     setResigned(false);
     setShowResignConfirm(false);
-    setBubbles([]);
-    if (timerRef.current) clearInterval(timerRef.current);
+    setShowGameOver(false);
+    setGameOverInfo(null);
+    setChatMessages([]);
     if (mumbleTimerRef.current) clearTimeout(mumbleTimerRef.current);
-    timerRef.current = setInterval(() => {
-      setElapsedSeconds(prev => prev + 1);
-    }, 1000);
-    setTimeout(() => addBubble(getComment('gameStart')), 500);
+    setTimeout(() => addChat(getComment('gameStart')), 500);
   };
 
   const getKanjiDisplay = (type: AnyPieceType, owner: Player): string => {
     if (type === 'king' && owner === 'sente') return PIECE_KANJI_SENTE_KING;
     return PIECE_KANJI[type];
   };
-
-  const difficultyLabel = difficulty === 'easy' ? 'やさしい' : difficulty === 'normal' ? 'ふつう' : 'つよい';
-  const moveCount = game.moveHistory.length;
 
   const colNumbers = [9, 8, 7, 6, 5, 4, 3, 2, 1];
   const rowLabels = ['一', '二', '三', '四', '五', '六', '七', '八', '九'];
@@ -356,87 +333,74 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
 
   const isGameOver = game.status === 'checkmate' || game.status === 'stalemate' || resigned;
 
+  // Board size: calculated from CSS using dvh
+  // Layout: chat(~15dvh) + goteCaptured(~4dvh) + board + senteCaptured(~4dvh) + controls(~4dvh)
+  // Available for board: 100dvh - 15 - 4 - 4 - 4 = ~73dvh, minus some padding
+  // Board = min(~65dvh, 100vw - padding)
+  const boardSize = 'min(62dvh, calc(100vw - 16px))';
+
   return (
-    <div className="no-scroll select-none relative">
-      {/* Floating chat bubble - overlays on the board */}
-      <ChatBubble messages={bubbles} />
-
-      {/* Status bar */}
-      <div className="flex items-center justify-between mb-3 px-1">
-        <button
-          onClick={onBack}
-          className="text-amber-800 hover:text-amber-600 text-base font-bold py-1.5 px-3 rounded-2xl hover:bg-white/60 transition-all active:scale-95"
-        >
-          ← 戻る
-        </button>
-        <span className="game-info-pill text-sm font-bold">
-          {difficultyLabel}
-        </span>
-        <button
-          onClick={handleReset}
-          className="text-amber-800 hover:text-amber-600 text-base font-bold py-1.5 px-3 rounded-2xl hover:bg-white/60 transition-all active:scale-95"
-        >
-          🔄 最初から
-        </button>
+    <div
+      className="no-scroll select-none flex flex-col"
+      style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden' }}
+    >
+      {/* Chat area - top ~18% */}
+      <div
+        className="flex-shrink-0"
+        style={{
+          height: '15dvh',
+          minHeight: '80px',
+          background: 'rgba(255,255,255,0.3)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          borderBottom: '0.5px solid rgba(0,0,0,0.06)',
+        }}
+      >
+        <ChatArea messages={chatMessages} />
       </div>
 
-      {/* Move count & time */}
-      <div className="flex items-center justify-center gap-3 mb-3">
-        <span className="game-info-pill">
-          📋 {moveCount}手目
-        </span>
-        <span className="game-info-pill">
-          ⏱ {formatTime(elapsedSeconds)}
-        </span>
-      </div>
-
-      {/* Message */}
-      <div className={`text-center text-lg md:text-xl font-bold mb-3 py-2.5 rounded-2xl backdrop-blur-sm ${
-        isGameOver
-          ? (game.winner === playerSide && !resigned)
-            ? 'bg-green-100/80 text-green-800 border border-green-200/60'
-            : 'bg-red-50/80 text-red-800 border border-red-200/60'
-          : game.status === 'check'
-            ? 'bg-yellow-100/80 text-yellow-800 border border-yellow-200/60'
-            : thinking
-              ? 'bg-blue-50/80 text-blue-800 border border-blue-200/60'
-              : 'bg-white/60 text-amber-800 border border-amber-200/40'
-      }`}>
-        {message}
-      </div>
-
-      {/* Gote captured pieces */}
-      <div className="mb-2 p-2 bg-white/40 backdrop-blur-sm rounded-2xl border border-amber-200/30">
-        <div className="text-xs text-amber-600 mb-1 font-bold">
-          △ AI の持ち駒
-        </div>
-        <div className="flex flex-wrap gap-1 min-h-[1.75rem]">
-          {capturedPieceTypes.map(pt => {
-            const count = game.captured.gote[pt] || 0;
-            if (count <= 0) return null;
-            return (
-              <span key={pt} className="inline-flex items-center bg-amber-100/80 px-2 py-0.5 rounded-full text-sm font-bold text-amber-900">
-                {PIECE_KANJI[pt]}{count > 1 ? `×${count}` : ''}
-              </span>
-            );
-          })}
+      {/* AI captured pieces */}
+      <div className="flex-shrink-0 px-2 py-1">
+        <div className="flex items-center gap-1 min-h-[24px]">
+          <span className="text-[10px] text-amber-600 font-bold whitespace-nowrap">△AI</span>
+          <div className="flex flex-wrap gap-0.5">
+            {capturedPieceTypes.map(pt => {
+              const count = game.captured.gote[pt] || 0;
+              if (count <= 0) return null;
+              return (
+                <span key={pt} className="inline-flex items-center bg-amber-100/60 px-1.5 py-0 rounded-full text-xs font-bold text-amber-900">
+                  {PIECE_KANJI[pt]}{count > 1 ? `×${count}` : ''}
+                </span>
+              );
+            })}
+          </div>
+          {thinking && (
+            <span className="ml-auto text-[10px] text-blue-600 font-bold animate-pulse">🤔考え中…</span>
+          )}
+          {game.status === 'check' && !isGameOver && (
+            <span className="ml-auto text-[10px] text-yellow-700 font-bold">⚠️王手</span>
+          )}
         </div>
       </div>
 
-      {/* Board */}
-      <div className="flex justify-center">
+      {/* Board - center, flex-1 */}
+      <div className="flex-1 flex items-center justify-center min-h-0 px-1">
         <div className="relative">
-          <div className="flex ml-6 mr-4">
+          {/* Column numbers */}
+          <div className="flex ml-5 mr-3" style={{ width: boardSize }}>
             {colNumbers.map((n, i) => (
-              <div key={i} className="flex-1 text-center text-xs md:text-sm text-amber-600 font-bold">
+              <div key={i} className="flex-1 text-center text-[10px] text-amber-600 font-bold">
                 {n}
               </div>
             ))}
           </div>
 
           <div className="flex">
-            <div className="board-texture rounded-lg shadow-lg border-2 border-amber-900/40 p-0">
-              <div className="grid grid-cols-9 relative" style={{ width: 'min(85vw, 450px)', height: 'min(85vw, 450px)' }}>
+            <div className="board-texture rounded-lg shadow-lg border-2 border-amber-900/40">
+              <div
+                className="grid grid-cols-9 relative"
+                style={{ width: boardSize, height: boardSize }}
+              >
                 {starPositions.map((pos, idx) => {
                   const cellW = 100 / 9;
                   const left = `${(pos.col + 0.5) * cellW}%`;
@@ -482,14 +446,14 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
                                 text-amber-950 font-bold leading-none
                                 ${isPromoted(cell.type) ? 'text-red-700' : ''}
                               `}
-                              style={{ fontSize: 'min(4.5vw, 24px)' }}
+                              style={{ fontSize: `calc(${boardSize} / 9 * 0.45)` }}
                             >
                               {getKanjiDisplay(cell.type, cell.owner)}
                             </span>
                           </div>
                         )}
                         {isLegal && !cell && (
-                          <div className="w-3 h-3 md:w-4 md:h-4 rounded-full bg-green-500/40" />
+                          <div className="w-2.5 h-2.5 rounded-full bg-green-500/40" />
                         )}
                       </div>
                     );
@@ -498,11 +462,12 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
               </div>
             </div>
 
-            <div className="flex flex-col ml-1">
+            {/* Row labels */}
+            <div className="flex flex-col ml-0.5" style={{ height: boardSize }}>
               {rowLabels.map((label, i) => (
                 <div
                   key={i}
-                  className="flex-1 flex items-center text-xs md:text-sm text-amber-600 font-bold"
+                  className="flex-1 flex items-center text-[10px] text-amber-600 font-bold"
                 >
                   {label}
                 </div>
@@ -512,76 +477,136 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
         </div>
       </div>
 
-      {/* Sente captured pieces */}
-      <div className="mt-2 p-2 bg-white/40 backdrop-blur-sm rounded-2xl border border-amber-200/30">
-        <div className="text-xs text-amber-600 mb-1 font-bold">
-          ▲ あなたの持ち駒（タップで打つ）
-        </div>
-        <div className="flex flex-wrap gap-1 min-h-[1.75rem]">
-          {capturedPieceTypes.map(pt => {
-            const count = game.captured.sente[pt] || 0;
-            if (count <= 0) return null;
-            return (
-              <button
-                key={pt}
-                onClick={() => handleCapturedClick(pt)}
-                className={`inline-flex items-center px-3 py-1 rounded-full text-base font-bold transition-all active:scale-95
-                  ${selectedDrop === pt
-                    ? 'bg-yellow-400 text-amber-900 shadow-md'
-                    : 'bg-amber-100/80 hover:bg-amber-200/80 text-amber-900'
-                  }`}
-              >
-                {PIECE_KANJI[pt]}{count > 1 ? `×${count}` : ''}
-              </button>
-            );
-          })}
+      {/* Player captured pieces */}
+      <div className="flex-shrink-0 px-2 py-1">
+        <div className="flex items-center gap-1 min-h-[28px]">
+          <span className="text-[10px] text-amber-600 font-bold whitespace-nowrap">▲自分</span>
+          <div className="flex flex-wrap gap-0.5">
+            {capturedPieceTypes.map(pt => {
+              const count = game.captured.sente[pt] || 0;
+              if (count <= 0) return null;
+              return (
+                <button
+                  key={pt}
+                  onClick={() => handleCapturedClick(pt)}
+                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold transition-all active:scale-95
+                    ${selectedDrop === pt
+                      ? 'bg-yellow-400 text-amber-900 shadow-md'
+                      : 'bg-amber-100/70 text-amber-900'
+                    }`}
+                >
+                  {PIECE_KANJI[pt]}{count > 1 ? `×${count}` : ''}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      {/* Resign button */}
-      {!isGameOver && (
-        <div className="mt-4 text-center">
+      {/* Control bar - bottom, compact icons */}
+      <div className="flex-shrink-0 flex items-center justify-center gap-6 px-4 py-1.5 pb-[calc(6px+env(safe-area-inset-bottom,0px))]">
+        <button
+          onClick={onBack}
+          className="text-amber-700/60 hover:text-amber-800 text-lg active:scale-90 transition-all p-1.5"
+          title="戻る"
+        >
+          ←
+        </button>
+        <button
+          onClick={handleReset}
+          className="text-amber-700/60 hover:text-amber-800 text-lg active:scale-90 transition-all p-1.5"
+          title="最初から"
+        >
+          🔄
+        </button>
+        {!isGameOver && (
           <button
             onClick={() => setShowResignConfirm(true)}
-            className="text-amber-600/60 hover:text-red-600 text-sm font-bold py-2 px-6 rounded-full border border-amber-200/40 hover:border-red-300 hover:bg-red-50/50 transition-all active:scale-95"
+            className="text-amber-700/60 hover:text-red-600 text-lg active:scale-90 transition-all p-1.5"
+            title="投了"
           >
-            🏳 投了する
+            🏳️
           </button>
+        )}
+      </div>
+
+      {/* ===== Game Over Popup ===== */}
+      {showGameOver && gameOverInfo && (
+        <div className="game-over-overlay">
+          <div className="game-over-modal">
+            {gameOverInfo.result === 'win' && (
+              <>
+                <div className="text-5xl mb-3">🎉</div>
+                <h2 className="text-2xl font-bold text-amber-900 mb-2">
+                  おめでとうございます！
+                </h2>
+                <p className="text-base text-amber-700 mb-1">見事な勝利です！</p>
+              </>
+            )}
+            {gameOverInfo.result === 'lose' && (
+              <>
+                <div className="text-5xl mb-3">😤</div>
+                <h2 className="text-2xl font-bold text-amber-900 mb-2">
+                  残念！
+                </h2>
+                <p className="text-base text-amber-700 mb-1">次は勝てるはず…！</p>
+              </>
+            )}
+            {gameOverInfo.result === 'draw' && (
+              <>
+                <div className="text-5xl mb-3">🤝</div>
+                <h2 className="text-2xl font-bold text-amber-900 mb-2">
+                  いい勝負！
+                </h2>
+              </>
+            )}
+
+            {/* Gen-san's comment */}
+            <div className="flex items-start gap-2 mt-3 mb-5 text-left bg-amber-50/60 rounded-xl p-3">
+              <div className="chat-avatar flex-shrink-0">源</div>
+              <p className="text-sm text-amber-800 font-medium leading-relaxed">
+                {gameOverInfo.comment}
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleReset}
+                className="flex-1 btn-ios bg-gradient-to-r from-amber-700 to-amber-800 text-white text-base font-bold py-3 active:scale-95"
+              >
+                🔄 もう一局
+              </button>
+              <button
+                onClick={onBack}
+                className="flex-1 btn-ios bg-white/60 text-amber-800 text-base font-bold py-3 border border-amber-200/40 active:scale-95"
+              >
+                戻る
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Rematch button */}
-      {isGameOver && (
-        <div className="mt-4 text-center">
-          <button
-            onClick={handleReset}
-            className="btn-ios bg-gradient-to-r from-amber-700 to-amber-800 text-white text-lg font-bold py-3 px-8 shadow-lg active:scale-95"
-          >
-            🔄 もう一局
-          </button>
-        </div>
-      )}
-
-      {/* Resign confirm dialog */}
+      {/* Resign confirm */}
       {showResignConfirm && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="ios-card p-6 max-w-xs w-full mx-4">
+          <div className="game-over-modal">
             <p className="text-xl font-bold text-amber-900 text-center mb-2">
               投了しますか？
             </p>
-            <p className="text-sm text-amber-600 text-center mb-6">
+            <p className="text-sm text-amber-600 text-center mb-5">
               AIの勝ちになります
             </p>
             <div className="flex gap-3">
               <button
                 onClick={handleResign}
-                className="flex-1 btn-ios bg-red-600 hover:bg-red-500 text-white text-lg font-bold py-3.5 active:scale-95"
+                className="flex-1 btn-ios bg-red-600 hover:bg-red-500 text-white text-lg font-bold py-3 active:scale-95"
               >
                 投了
               </button>
               <button
                 onClick={() => setShowResignConfirm(false)}
-                className="flex-1 btn-ios bg-gray-200 hover:bg-gray-300 text-gray-700 text-lg font-bold py-3.5 active:scale-95"
+                className="flex-1 btn-ios bg-white/60 text-gray-700 text-lg font-bold py-3 border border-gray-200/40 active:scale-95"
               >
                 続ける
               </button>
@@ -593,20 +618,20 @@ export default function ShogiBoard({ difficulty, onBack }: ShogiBoardProps) {
       {/* Promote dialog */}
       {showPromote && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="ios-card p-6 max-w-xs w-full mx-4">
-            <p className="text-xl font-bold text-amber-900 text-center mb-6">
+          <div className="game-over-modal">
+            <p className="text-xl font-bold text-amber-900 text-center mb-5">
               成りますか？
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => showPromote.callback(true)}
-                className="flex-1 btn-ios bg-red-600 hover:bg-red-500 text-white text-lg font-bold py-3.5 active:scale-95"
+                className="flex-1 btn-ios bg-red-600 hover:bg-red-500 text-white text-lg font-bold py-3 active:scale-95"
               >
                 成る
               </button>
               <button
                 onClick={() => showPromote.callback(false)}
-                className="flex-1 btn-ios bg-gray-200 hover:bg-gray-300 text-gray-700 text-lg font-bold py-3.5 active:scale-95"
+                className="flex-1 btn-ios bg-white/60 text-gray-700 text-lg font-bold py-3 border border-gray-200/40 active:scale-95"
               >
                 不成
               </button>
