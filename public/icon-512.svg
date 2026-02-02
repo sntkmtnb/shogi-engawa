@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 192 192">
+  <rect width="192" height="192" rx="32" fill="#8B4513"/>
+  <polygon points="96,20 155,55 160,170 32,170 37,55" fill="#F5DEB3" stroke="#6B3410" stroke-width="3"/>
+  <text x="96" y="120" text-anchor="middle" font-size="60" font-weight="bold" fill="#3B1B06" font-family="serif">王</text>
+</svg>

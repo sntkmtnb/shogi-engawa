@@ -105,7 +105,7 @@ export default function TsumePage() {
           毎日コツコツ解いて、将棋の力と脳の健康を育てましょう。
         </p>
         {/* Progress display */}
-        {mounted && totalSolved > 0 && (
+        {mounted && (
           <div className="mt-3">
             <span className="inline-block bg-amber-100/80 text-amber-800 font-bold text-sm px-4 py-1.5 rounded-full">
               ✅ {totalSolved}/{totalProblems}問 クリア
@@ -123,7 +123,7 @@ export default function TsumePage() {
                 源
               </div>
               <p className="text-sm text-amber-900 font-bold">
-                「全問正解か！お前さんやるなぁ」
+                「全問制覇か！お前さん…もう立派な棋士じゃ。ワシ、嬉しいわ」
               </p>
             </div>
           </div>
@@ -147,11 +147,11 @@ export default function TsumePage() {
                   onClick={() => handleSelectDifficulty(key)}
                   className={`w-full btn-ios bg-gradient-to-r ${gradient} text-white text-xl md:text-2xl font-bold py-5 px-8 shadow-lg active:scale-97 relative`}
                 >
-                  {label}
+                  {label}{mounted && solved === total && total > 0 ? ' 🎉' : ''}
                   <span className="block text-sm mt-1 font-normal opacity-80">
                     {sub}（{total}問）
-                    {mounted && solved > 0 && (
-                      <span className="ml-1">— ✅ {solved}問クリア</span>
+                    {mounted && (
+                      <span className="ml-1">— ✅ {solved}/{total}問クリア</span>
                     )}
                   </span>
                 </button>

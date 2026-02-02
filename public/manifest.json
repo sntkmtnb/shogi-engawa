@@ -1,11 +1,11 @@
 {
-  "name": "将棋の縁台 - 50歳からの将棋サロン",
-  "short_name": "将棋の縁台",
-  "description": "毎朝の一局が、あなたの毎日を豊かにする。50歳以上のためのあたたかい将棋サロン。",
+  "name": "将棋の縁台",
+  "short_name": "縁台",
+  "description": "50歳からの将棋サロン。源さんと毎日一局。",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#f5f0e0",
+  "background_color": "#FFF8F0",
   "theme_color": "#8B4513",
   "lang": "ja",
   "categories": ["games", "education"],
@@ -13,6 +13,12 @@
     {
       "src": "/icon-192.svg",
       "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.svg",
+      "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
